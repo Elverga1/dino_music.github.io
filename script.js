@@ -3,7 +3,7 @@ const artistsData = [
     {
         id: 1,
         name: "Duki",
-        logo: "images/duki-logo.jpg", // Ruta de tu imagen
+        logo: "duki-logo.jpg", // Ruta de tu imagen
         fallbackEmoji: "😈",
         songs: [
             {
