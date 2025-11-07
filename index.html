@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mi colección de música por artista">
+    <meta name="theme-color" content="#667eea">
+    <title>🎵 Mi Música por Artista</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-content">
+                <h1><i class="fas fa-compact-disc"></i> Tus recuerdos</h1>
+                <div class="header-stats">
+                    <span id="artistCount">0 artistas</span>
+                    <span id="songCount">0 canciones</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Búsqueda -->
+        <div class="search-section">
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Buscar artista o canción...">
+                <button id="clearSearch" class="clear-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Lista de artistas -->
+        <main class="artists-container" id="artistsContainer">
+            <!-- Los artistas se cargan aquí -->
+        </main>
+
+        <!-- Estado vacío -->
+        <div class="empty-state" id="emptyState">
+            <i class="fas fa-music"></i>
+            <h3>No se encontraron resultados</h3>
+            <p>Intenta con otros términos de búsqueda</p>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="loading-spinner">
+            <i class="fas fa-compact-disc"></i>
+        </div>
+        <p>Cargando artistas...</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
