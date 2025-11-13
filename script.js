@@ -52,7 +52,7 @@ const artistsData = [
             },
             {
                 id: 7,
-                title: "Bipolar",
+                title: "Nadie como tu",
                 url: "https://music.youtube.com/watch?v=xgpvAagBAwY&si=CetrGj6kkmle8HDj",
                 duration: "2:54"
             }
