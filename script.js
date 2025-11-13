@@ -40,9 +40,9 @@ const artistsData = [
         songs: [
             {
                 id: 5,
-                title: "Mueve",
-                url: "https://music.youtube.com/watch?v=cro_mueve",
-                duration: "3:22"
+                title: "Reina",
+                url: "https://music.youtube.com/watch?v=SjbxN8mtSC4&si=yvPJNPd9rgL61qpk",
+                duration: "4:02"
             },
             {
                 id: 6,
