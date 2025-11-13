@@ -26,9 +26,9 @@ const artistsData = [
             },
             {
                 id: 4,
-                title: "Goteo",
-                url: "https://music.youtube.com/watch?v=duki_goteo",
-                duration: "3:30"
+                title: "Buscarte Lejos",
+                url: "https://music.youtube.com/watch?v=S7pn14tZIl8&si=Gh0vgf_gDC2h3ga8",
+                duration: "3:15"
             }
         ]
     },
