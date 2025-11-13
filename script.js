@@ -46,15 +46,15 @@ const artistsData = [
             },
             {
                 id: 6,
-                title: "Sin Condon",
-                url: "https://music.youtube.com/watch?v=cro_sin_condon",
-                duration: "3:50"
+                title: "Tu recuerdo",
+                url: "https://music.youtube.com/watch?v=VjJqaSzZmUI&si=ItM0TO0hV01KkoNu",
+                duration: "2:29"
             },
             {
                 id: 7,
                 title: "Bipolar",
-                url: "https://music.youtube.com/watch?v=cro_bipolar",
-                duration: "3:25"
+                url: "https://music.youtube.com/watch?v=xgpvAagBAwY&si=CetrGj6kkmle8HDj",
+                duration: "2:54"
             }
         ]
     },
