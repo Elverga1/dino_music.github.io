@@ -35,6 +35,12 @@ const artistsData = [
                 title: "Ameri",
                 url: "https://music.youtube.com/watch?v=Emma9AXOD9I&si=XlmR_n9sWgCVMUC5",
                 duration: "3:20"
+            },
+            {
+                id: 6,
+                title: "A punta de espada",
+                url: "https://music.youtube.com/watch?v=gzB2SSlGcCc&si=IBWnhKeueFKAAA3a",
+                duration: "3:23"
             }
         ]
     },
@@ -45,22 +51,34 @@ const artistsData = [
         fallbackEmoji: "🔥",
         songs: [
             {
-                id: 6,
+                id: 7,
                 title: "Reina",
                 url: "https://music.youtube.com/watch?v=SjbxN8mtSC4&si=yvPJNPd9rgL61qpk",
                 duration: "4:02"
             },
             {
-                id: 7,
+                id: 8,
                 title: "Tu recuerdo",
                 url: "https://music.youtube.com/watch?v=VjJqaSzZmUI&si=ItM0TO0hV01KkoNu",
                 duration: "2:29"
             },
             {
-                id: 8,
+                id: 10,
                 title: "Nadie como tu",
                 url: "https://music.youtube.com/watch?v=xgpvAagBAwY&si=CetrGj6kkmle8HDj",
                 duration: "2:54"
+            },
+            {
+                id: 11,
+                title: "Mi morena",
+                url: "https://music.youtube.com/watch?v=pc2IKQL0N5U&si=rPqhUQvkiHHyhXyd",
+                duration: "3:33"
+            },
+            {
+                id: 12,
+                title: "Sobredosis en las vegas",
+                url: "https://music.youtube.com/watch?v=vql6klfeFMM&si=vMPXBuLDhF2FOSjH",
+                duration: "2:53"
             }
         ]
     },
@@ -71,25 +89,25 @@ const artistsData = [
         fallbackEmoji: "🦅",
         songs: [
             {
-                id: 9,
+                id: ,
                 title: "No Love",
                 url: "https://music.youtube.com/watch?v=keo_no_love",
                 duration: "3:40"
             },
             {
-                id: 10,
+                id: ,
                 title: "Problem",
                 url: "https://music.youtube.com/watch?v=keo_problem",
                 duration: "3:15"
             },
             {
-                id: 11,
+                id: ,
                 title: "Rockstar",
                 url: "https://music.youtube.com/watch?v=keo_rockstar",
                 duration: "3:55"
             },
             {
-                id: 12,
+                id: ,
                 title: "Malianteo",
                 url: "https://music.youtube.com/watch?v=keo_malianteo",
                 duration: "3:20"
@@ -103,13 +121,13 @@ const artistsData = [
         fallbackEmoji: "⚡",
         songs: [
             {
-                id: 13,
+                id: ,
                 title: "Dame Droga",
                 url: "https://music.youtube.com/watch?v=ysy_dame_droga",
                 duration: "3:45"
             },
             {
-                id: 14,
+                id: ,
                 title: "Trap de Verdad",
                 url: "https://music.youtube.com/watch?v=ysy_trap",
                 duration: "3:30"
@@ -123,13 +141,13 @@ const artistsData = [
         fallbackEmoji: "🌙",
         songs: [
             {
-                id: 15,
+                id: ,
                 title: "Papi Chu",
                 url: "https://music.youtube.com/watch?v=neo_papi_chu",
                 duration: "3:10"
             },
             {
-                id: 16,
+                id: ,
                 title: "Como Le Digo",
                 url: "https://music.youtube.com/watch?v=neo_como_le_digo",
                 duration: "3:45"
@@ -143,13 +161,13 @@ const artistsData = [
         fallbackEmoji: "🌙",
         songs: [
             {
-                id: 17,
+                id: ,
                 title: "Vuela",
                 url: "https://music.youtube.com/watch?v=neo_papi_chu",
                 duration: "3:10"
             },
             {
-                id: 18,
+                id: ,
                 title: "Una rosa",
                 url: "https://music.youtube.com/watch?v=neo_como_le_digo",
                 duration: "3:45"
