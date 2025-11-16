@@ -89,25 +89,25 @@ const artistsData = [
         fallbackEmoji: "🦅",
         songs: [
             {
-                id: ,
+                id: 13,
                 title: "No Love",
                 url: "https://music.youtube.com/watch?v=keo_no_love",
                 duration: "3:40"
             },
             {
-                id: ,
+                id: 14,
                 title: "Problem",
                 url: "https://music.youtube.com/watch?v=keo_problem",
                 duration: "3:15"
             },
             {
-                id: ,
+                id: 15,
                 title: "Rockstar",
                 url: "https://music.youtube.com/watch?v=keo_rockstar",
                 duration: "3:55"
             },
             {
-                id: ,
+                id: 16,
                 title: "Malianteo",
                 url: "https://music.youtube.com/watch?v=keo_malianteo",
                 duration: "3:20"
@@ -121,13 +121,13 @@ const artistsData = [
         fallbackEmoji: "⚡",
         songs: [
             {
-                id: ,
+                id: 17,
                 title: "Dame Droga",
                 url: "https://music.youtube.com/watch?v=ysy_dame_droga",
                 duration: "3:45"
             },
             {
-                id: ,
+                id: 18,
                 title: "Trap de Verdad",
                 url: "https://music.youtube.com/watch?v=ysy_trap",
                 duration: "3:30"
@@ -141,13 +141,13 @@ const artistsData = [
         fallbackEmoji: "🌙",
         songs: [
             {
-                id: ,
+                id: 19,
                 title: "Papi Chu",
                 url: "https://music.youtube.com/watch?v=neo_papi_chu",
                 duration: "3:10"
             },
             {
-                id: ,
+                id: 20,
                 title: "Como Le Digo",
                 url: "https://music.youtube.com/watch?v=neo_como_le_digo",
                 duration: "3:45"
@@ -161,13 +161,13 @@ const artistsData = [
         fallbackEmoji: "🌙",
         songs: [
             {
-                id: ,
+                id: 21,
                 title: "Vuela",
                 url: "https://music.youtube.com/watch?v=neo_papi_chu",
                 duration: "3:10"
             },
             {
-                id: ,
+                id: 22,
                 title: "Una rosa",
                 url: "https://music.youtube.com/watch?v=neo_como_le_digo",
                 duration: "3:45"
