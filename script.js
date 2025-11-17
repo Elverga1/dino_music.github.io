@@ -78,6 +78,18 @@ const artistsData = [
                 url: "https://music.youtube.com/watch?v=sDKeXqj8X-o&si=moizg133rWCnTzNa",
                 duration: "2:27"
             },
+            {
+                id: 13,
+                title: "CALL ME MAYBE",
+                url: "https://music.youtube.com/watch?v=5wN1gN7SAnY&si=teY5NgUCdVRDLSVo",
+                duration: "3:43"
+            },
+            {
+                id: 14,
+                title: "YIN YAN",
+                url: "https://music.youtube.com/watch?v=FIWAdbA1HnM&si=MGmvW1lvy-igchd2",
+                duration: "3:10"
+            }
         ]
     },
     {
@@ -87,31 +99,31 @@ const artistsData = [
         fallbackEmoji: "🔥",
         songs: [
             {
-                id: 13,
+                id: 15,
                 title: "Reina",
                 url: "https://music.youtube.com/watch?v=SjbxN8mtSC4&si=yvPJNPd9rgL61qpk",
                 duration: "4:02"
             },
             {
-                id: 14,
+                id: 16,
                 title: "Tu recuerdo",
                 url: "https://music.youtube.com/watch?v=VjJqaSzZmUI&si=ItM0TO0hV01KkoNu",
                 duration: "2:29"
             },
             {
-                id: 15,
+                id: 17,
                 title: "Nadie como tu",
                 url: "https://music.youtube.com/watch?v=xgpvAagBAwY&si=CetrGj6kkmle8HDj",
                 duration: "2:54"
             },
             {
-                id: 16,
+                id: 18,
                 title: "Mi morena",
                 url: "https://music.youtube.com/watch?v=pc2IKQL0N5U&si=rPqhUQvkiHHyhXyd",
                 duration: "3:33"
             },
             {
-                id: 17,
+                id: 19,
                 title: "Sobredosis en las vegas",
                 url: "https://music.youtube.com/watch?v=vql6klfeFMM&si=vMPXBuLDhF2FOSjH",
                 duration: "2:53"
@@ -125,88 +137,28 @@ const artistsData = [
         fallbackEmoji: "🦅",
         songs: [
             {
-                id: 18,
+                id: 20,
                 title: "No Love",
                 url: "https://music.youtube.com/watch?v=keo_no_love",
                 duration: "3:40"
             },
             {
-                id: 19,
+                id: 21,
                 title: "Problem",
                 url: "https://music.youtube.com/watch?v=keo_problem",
                 duration: "3:15"
             },
             {
-                id: 20,
+                id: 22,
                 title: "Rockstar",
                 url: "https://music.youtube.com/watch?v=keo_rockstar",
                 duration: "3:55"
             },
             {
-                id: 21,
+                id: 23,
                 title: "Malianteo",
                 url: "https://music.youtube.com/watch?v=keo_malianteo",
                 duration: "3:20"
-            }
-        ]
-    },
-    {
-        id: 4,
-        name: "YSY A",
-        logo: "images/ysy-logo.jpg",
-        fallbackEmoji: "⚡",
-        songs: [
-            {
-                id: 22,
-                title: "Dame Droga",
-                url: "https://music.youtube.com/watch?v=ysy_dame_droga",
-                duration: "3:45"
-            },
-            {
-                id: 23,
-                title: "Trap de Verdad",
-                url: "https://music.youtube.com/watch?v=ysy_trap",
-                duration: "3:30"
-            }
-        ]
-    },
-    {
-        id: 5,
-        name: "Neo Pistea",
-        logo: "images/neo-logo.jpg",
-        fallbackEmoji: "🌙",
-        songs: [
-            {
-                id: 24,
-                title: "Papi Chu",
-                url: "https://music.youtube.com/watch?v=neo_papi_chu",
-                duration: "3:10"
-            },
-            {
-                id: 25,
-                title: "Como Le Digo",
-                url: "https://music.youtube.com/watch?v=neo_como_le_digo",
-                duration: "3:45"
-            }
-        ]
-    },
-    {
-        id: 6,
-        name: "3 am",
-        logo: "images/neo-logo.jpg",
-        fallbackEmoji: "🌙",
-        songs: [
-            {
-                id: 26,
-                title: "Vuela",
-                url: "https://music.youtube.com/watch?v=neo_papi_chu",
-                duration: "3:10"
-            },
-            {
-                id: 27,
-                title: "Una rosa",
-                url: "https://music.youtube.com/watch?v=neo_como_le_digo",
-                duration: "3:45"
             }
         ]
     }
