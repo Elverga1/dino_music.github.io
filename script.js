@@ -41,7 +41,43 @@ const artistsData = [
                 title: "A punta de espada",
                 url: "https://music.youtube.com/watch?v=gzB2SSlGcCc&si=IBWnhKeueFKAAA3a",
                 duration: "3:23"
-            }
+            },
+            {
+                id: 7,
+                title: "Malbec",
+                url: "https://music.youtube.com/watch?v=A5Jyopocqbs&si=00y8uB_Sw86j24QU",
+                duration: "2:56"
+            },
+            {
+                id: 8,
+                title: "eCLIPSE SOLAR",
+                url: "https://music.youtube.com/watch?v=lE6-dWJ3sXc&si=hSXQWiURq-wT1AWO",
+                duration: "2:26"
+            },
+            {
+                id: 9,
+                title: "Loca",
+                url: "https://music.youtube.com/watch?v=BdU4-BJ5iEQ&si=Fbv_yQ84GkLzepTW",
+                duration: "4:07"
+            },
+            {
+                id: 10,
+                title: "Si te sentis sola",
+                url: "https://music.youtube.com/watch?v=0n3TNv29ti0&si=B3wbTPdmlvUZz7Ms",
+                duration: "2:59"
+            },
+            {
+                id: 11,
+                title: "Si me sobrara el tiempo",
+                url: "https://music.youtube.com/watch?v=xJ3D24le5nA&si=-vc0ZHrFEK1bU5pE",
+                duration: "2:49"
+            },
+            {
+                id: 12,
+                title: "TOP 5",
+                url: "https://music.youtube.com/watch?v=sDKeXqj8X-o&si=moizg133rWCnTzNa",
+                duration: "2:27"
+            },
         ]
     },
     {
@@ -51,31 +87,31 @@ const artistsData = [
         fallbackEmoji: "🔥",
         songs: [
             {
-                id: 7,
+                id: 13,
                 title: "Reina",
                 url: "https://music.youtube.com/watch?v=SjbxN8mtSC4&si=yvPJNPd9rgL61qpk",
                 duration: "4:02"
             },
             {
-                id: 8,
+                id: 14,
                 title: "Tu recuerdo",
                 url: "https://music.youtube.com/watch?v=VjJqaSzZmUI&si=ItM0TO0hV01KkoNu",
                 duration: "2:29"
             },
             {
-                id: 10,
+                id: 15,
                 title: "Nadie como tu",
                 url: "https://music.youtube.com/watch?v=xgpvAagBAwY&si=CetrGj6kkmle8HDj",
                 duration: "2:54"
             },
             {
-                id: 11,
+                id: 16,
                 title: "Mi morena",
                 url: "https://music.youtube.com/watch?v=pc2IKQL0N5U&si=rPqhUQvkiHHyhXyd",
                 duration: "3:33"
             },
             {
-                id: 12,
+                id: 17,
                 title: "Sobredosis en las vegas",
                 url: "https://music.youtube.com/watch?v=vql6klfeFMM&si=vMPXBuLDhF2FOSjH",
                 duration: "2:53"
@@ -89,25 +125,25 @@ const artistsData = [
         fallbackEmoji: "🦅",
         songs: [
             {
-                id: 13,
+                id: 18,
                 title: "No Love",
                 url: "https://music.youtube.com/watch?v=keo_no_love",
                 duration: "3:40"
             },
             {
-                id: 14,
+                id: 19,
                 title: "Problem",
                 url: "https://music.youtube.com/watch?v=keo_problem",
                 duration: "3:15"
             },
             {
-                id: 15,
+                id: 20,
                 title: "Rockstar",
                 url: "https://music.youtube.com/watch?v=keo_rockstar",
                 duration: "3:55"
             },
             {
-                id: 16,
+                id: 21,
                 title: "Malianteo",
                 url: "https://music.youtube.com/watch?v=keo_malianteo",
                 duration: "3:20"
@@ -121,13 +157,13 @@ const artistsData = [
         fallbackEmoji: "⚡",
         songs: [
             {
-                id: 17,
+                id: 22,
                 title: "Dame Droga",
                 url: "https://music.youtube.com/watch?v=ysy_dame_droga",
                 duration: "3:45"
             },
             {
-                id: 18,
+                id: 23,
                 title: "Trap de Verdad",
                 url: "https://music.youtube.com/watch?v=ysy_trap",
                 duration: "3:30"
@@ -141,13 +177,13 @@ const artistsData = [
         fallbackEmoji: "🌙",
         songs: [
             {
-                id: 19,
+                id: 24,
                 title: "Papi Chu",
                 url: "https://music.youtube.com/watch?v=neo_papi_chu",
                 duration: "3:10"
             },
             {
-                id: 20,
+                id: 25,
                 title: "Como Le Digo",
                 url: "https://music.youtube.com/watch?v=neo_como_le_digo",
                 duration: "3:45"
@@ -161,13 +197,13 @@ const artistsData = [
         fallbackEmoji: "🌙",
         songs: [
             {
-                id: 21,
+                id: 26,
                 title: "Vuela",
                 url: "https://music.youtube.com/watch?v=neo_papi_chu",
                 duration: "3:10"
             },
             {
-                id: 22,
+                id: 27,
                 title: "Una rosa",
                 url: "https://music.youtube.com/watch?v=neo_como_le_digo",
                 duration: "3:45"
