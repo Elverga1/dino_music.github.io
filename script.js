@@ -127,6 +127,12 @@ const artistsData = [
                 title: "Sobredosis en las vegas",
                 url: "https://music.youtube.com/watch?v=vql6klfeFMM&si=vMPXBuLDhF2FOSjH",
                 duration: "2:53"
+            },
+            {
+                id: 20,
+                title: "Secretos",
+                url: "https://music.youtube.com/watch?v=5ofsh8xHs4g&si=MypRO3XHRGOBaBEP",
+                duration: "2:41"
             }
         ]
     },
@@ -137,29 +143,41 @@ const artistsData = [
         fallbackEmoji: "🦅",
         songs: [
             {
-                id: 20,
-                title: "No Love",
-                url: "https://music.youtube.com/watch?v=keo_no_love",
-                duration: "3:40"
+                id: 21,
+                title: "Celine",
+                url: "https://music.youtube.com/watch?v=RSGli9HFfeY&si=PX8vG-EuB524BONg",
+                duration: "2:57"
             },
             {
-                id: 21,
-                title: "Problem",
+                id: 22,
+                title: "Ma´ vie",
                 url: "https://music.youtube.com/watch?v=keo_problem",
                 duration: "3:15"
             },
             {
-                id: 22,
-                title: "Rockstar",
-                url: "https://music.youtube.com/watch?v=keo_rockstar",
-                duration: "3:55"
+                id: 23,
+                title: "Moon talk",
+                url: "https://music.youtube.com/watch?v=n4uh3_nxQqo&si=IAj0T_LKE-tj7lD8",
+                duration: "3:05"
             },
             {
-                id: 23,
-                title: "Malianteo",
-                url: "https://music.youtube.com/watch?v=keo_malianteo",
-                duration: "3:20"
-            }
+                id: 24,
+                title: "Besos",
+                url: "https://music.youtube.com/watch?v=f69cr-CALkY&si=v8aFsLfhF_bUl7p109",
+                duration: "2:53"
+            },
+            {
+                id: 25,
+                title: "Como vas?",
+                url: "https://music.youtube.com/watch?v=71J3hilV7Es&si=TeVG9rB4zok-go7J",
+                duration: "2:41"
+            },
+            {
+                id: 26,
+                title: "L´AMOUR",
+                url: "https://music.youtube.com/watch?v=17bKQIFGpb4&si=-mLAG3YaCpXiY1Z4",
+                duration: "2:10"
+            },
         ]
     }
 ];
