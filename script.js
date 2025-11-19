@@ -441,20 +441,6 @@ function changeDate(direction) {
     renderLettersForDate(currentSelectedDate);
 }
 
-function checkForAutoUpdate() {
-    const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
-    const lastChecked = parseInt(lastUpdateCheck);
-    
-    if (currentTimestamp > lastChecked) {
-        console.log('🔄 Cambios detectados, actualizando...');
-        performAutoUpdate();
-    }
-    
-    lastUpdateCheck = Date.now();
-    localStorage.setItem('lastUpdateCheck', lastUpdateCheck);
-}
-
-
 // SISTEMA DE SINCRONIZACIÓN MEJORADO
 let lastSyncTime = 0;
 
@@ -507,6 +493,20 @@ function initializeSync() {
     
     console.log('🔄 Sistema de sincronización activado');
 }
+
+function checkForAutoUpdate() {
+    const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
+    const lastChecked = parseInt(lastUpdateCheck);
+    
+    if (currentTimestamp > lastChecked) {
+        console.log('🔄 Cambios detectados, actualizando...');
+        performAutoUpdate();
+    }
+    
+    lastUpdateCheck = Date.now();
+    localStorage.setItem('lastUpdateCheck', lastUpdateCheck);
+}
+
 
 function performAutoUpdate() {
     const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
