@@ -221,6 +221,32 @@ const artistsData = [
                 duration: "2:10"
             },
         ]
+    },
+    {
+        id: 4,
+        name: "3 AM",
+        logo: "images/3-am-logo.png",
+        fallbackEmoji: "🦅",
+        songs: [
+            {
+                id: 34,
+                title: "Bombon",
+                url: "https://music.youtube.com/watch?v=RSGli9HFfeY&si=PX8vG-EuB524BONg",
+                duration: "2:57"
+            },
+            {
+                id: 29,
+                title: "Mil maneras de morir",
+                url: "https://music.youtube.com/watch?v=keo_problem",
+                duration: "3:15"
+            },
+            {
+                id: 30,
+                title: "No lo encuentro",
+                url: "https://music.youtube.com/watch?v=n4uh3_nxQqo&si=IAj0T_LKE-tj7lD8",
+                duration: "3:05"
+            }
+        ]
     }
 ];
 
