@@ -3,78 +3,36 @@ const ADMIN_CONFIG = {
     sessionTimeout: 60 * 60 * 1000
 }
 
-// FUNCIÓN MEJORADA para obtener la fecha actual
 function getCurrentLocalDate() {
     const now = new Date();
-    
-    // FORZAR verificación de la fecha real
-    console.log('📅 Fecha del sistema:', now.toString());
-    console.log('📅 Día de la semana:', now.getDay()); // 0=Domingo, 1=Lunes, ..., 3=Miércoles
-    
+    // FORZAR verificación de zona horaria local
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     
-    const fechaActual = `${year}-${month}-${day}`;
-    console.log('✅ Fecha actual calculada:', fechaActual);
-    
-    return fechaActual;
+    const fecha = `${year}-${month}-${day}`;
+    console.log('📅 Fecha forzada:', fecha, 'Día real:', now.getDate());
+    return fecha;
 }
 
-// FUNCIÓN MEJORADA para formatear fechas en español - VERSIÓN CORREGIDA
+// FUNCIÓN SIMPLE para formatear fechas
 function formatDate(dateString) {
-    console.log('🔍 Formateando fecha:', dateString);
+    // Si no hay fecha, usar hoy
+    if (!dateString) dateString = getCurrentLocalDate();
     
-    // FORZAR la fecha actual si hay problemas
-    if (!dateString || dateString === 'undefined') {
-        dateString = getCurrentLocalDate();
-    }
-    
-    // Asegurarnos de que tenemos el formato correcto (YYYY-MM-DD)
-    let year, month, day;
-    
-    if (dateString.includes('-')) {
-        // Formato YYYY-MM-DD
-        const dateParts = dateString.split('-');
-        year = parseInt(dateParts[0]);
-        month = parseInt(dateParts[1]) - 1; // Meses en JS: 0-11
-        day = parseInt(dateParts[2]);
-    } else {
-        // Si no es el formato esperado, usar fecha actual
-        const today = new Date();
-        year = today.getFullYear();
-        month = today.getMonth();
-        day = today.getDate();
-        console.log('⚠️  Usando fecha actual forzada');
-    }
-    
-    const date = new Date(year, month, day);
-    
-    // VERIFICAR que la fecha sea válida
-    if (isNaN(date.getTime())) {
-        console.error('❌ Fecha inválida, usando fecha actual');
-        const today = new Date();
-        return today.toLocaleDateString('es-ES', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric'
-        });
-    }
+    const date = new Date(dateString + 'T12:00:00'); // Forzar hora media para evitar problemas de zona horaria
     
     const options = { 
+        weekday: 'long',
         year: 'numeric', 
         month: 'long', 
-        day: 'numeric',
-        weekday: 'long'
+        day: 'numeric'
     };
     
-    const fechaFormateada = date.toLocaleDateString('es-ES', options);
-    console.log('✅ Fecha formateada:', fechaFormateada);
-    
-    return fechaFormateada;
+    return date.toLocaleDateString('es-ES', options);
 }
 
+// FORZAR fecha actual al cargar
 let currentSelectedDate = getCurrentLocalDate();
 
 // BASE DE DATOS DE ARTISTAS - FÁCIL DE EDITAR
@@ -409,17 +367,19 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeApp() {
-    // Simular carga
     setTimeout(() => {
         loading.style.display = 'none';
         renderArtists();
         setupEventListeners();
         updateStats();
-        updateDateDisplay();
+        updateDateDisplay(); // ← FORZAR ACTUALIZACIÓN DE FECHA
         renderLettersForDate(currentSelectedDate);
-        renderStatistics();
         updateAdminInterface();
+        initializeSync(); // ← ACTIVAR SINCRONIZACIÓN
         console.log('✅ Aplicación iniciada correctamente');
+        
+        // DEBUG: Mostrar fecha actual
+        console.log('🐛 Fecha actual forzada:', getCurrentLocalDate());
     }, 800);
 }
 
@@ -481,18 +441,57 @@ function changeDate(direction) {
     renderLettersForDate(currentSelectedDate);
 }
 
-// SISTEMA DE AUTO-UPDATE SIMPLIFICADO
-function checkForAutoUpdate() {
-    const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
-    const lastChecked = parseInt(lastUpdateCheck);
+// SISTEMA DE SINCRONIZACIÓN MEJORADO
+let lastSyncTime = 0;
+
+// Función para ACTUALIZAR timestamp cuando hay cambios
+function markContentUpdated() {
+    const timestamp = Date.now();
+    localStorage.setItem('lastContentUpdate', timestamp);
+    console.log('⏰ Marcando contenido actualizado:', timestamp);
+}
+
+// Función para VERIFICAR cambios en otros dispositivos
+function checkForUpdates() {
+    const lastUpdate = parseInt(localStorage.getItem('lastContentUpdate') || '0');
     
-    if (currentTimestamp > lastChecked) {
-        console.log('🔄 Cambios detectados, actualizando...');
-        performAutoUpdate();
+    if (lastUpdate > lastSyncTime) {
+        console.log('🔄 Cambios detectados, sincronizando...');
+        syncContent();
+        lastSyncTime = lastUpdate;
     }
+}
+
+// Función para SINCRONIZAR contenido
+function syncContent() {
+    // Recargar cartas desde localStorage
+    const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
     
-    lastUpdateCheck = Date.now();
-    localStorage.setItem('lastUpdateCheck', lastUpdateCheck);
+    // Actualizar solo si hay cambios reales
+    if (JSON.stringify(updatedLetters) !== JSON.stringify(lettersData)) {
+        lettersData = updatedLetters;
+        renderLettersForDate(currentSelectedDate);
+        if (isAdmin) {
+            renderAdminLettersList();
+        }
+        console.log('✅ Contenido sincronizado');
+        showNotification('📱 Contenido actualizado');
+    }
+}
+
+// Inicializar sincronización
+function initializeSync() {
+    // Verificar cada 3 segundos
+    setInterval(checkForUpdates, 3000);
+    
+    // También verificar cuando la página se activa
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            checkForUpdates();
+        }
+    });
+    
+    console.log('🔄 Sistema de sincronización activado');
 }
 
 function performAutoUpdate() {
@@ -937,8 +936,7 @@ function saveNewLetter() {
 
     const title = document.getElementById('letterTitle')?.value.trim();
     const content = document.getElementById('letterContent')?.value.trim();
-    const dateInput = document.getElementById('letterDate');
-    const date = dateInput?.value || getCurrentLocalDate();
+    const date = document.getElementById('letterDate')?.value || getCurrentLocalDate();
 
     if (!title || !content) {
         showNotification('❌ Escribe título y contenido', 'error');
@@ -955,8 +953,11 @@ function saveNewLetter() {
 
     lettersData.push(newLetter);
     localStorage.setItem('loveLetters', JSON.stringify(lettersData));
-    updateLettersTimestamp();
     
+    // ✅ MARCAR CONTENIDO ACTUALIZADO
+    markContentUpdated();
+    
+    // Actualizar interfaces
     if (date === currentSelectedDate) {
         renderLettersForDate(currentSelectedDate);
     }
@@ -965,13 +966,12 @@ function saveNewLetter() {
     }
     
     clearEditorForm();
-    showNotification('💖 Carta guardada correctamente');
-    console.log('💌 Carta guardada con fecha:', date);
+    showNotification('💖 Carta guardada y sincronizada');
 }
 
 function deleteLetter(letterId) {
     if (!isAdmin) {
-        showNotification('❌ No tienes permisos para esta acción', 'error');
+        showNotification('❌ No tienes permisos', 'error');
         return;
     }
 
@@ -979,12 +979,14 @@ function deleteLetter(letterId) {
         lettersData = lettersData.filter(letter => letter.id !== letterId);
         localStorage.setItem('loveLetters', JSON.stringify(lettersData));
         
+        // ✅ MARCAR CONTENIDO ACTUALIZADO
+        markContentUpdated();
+        
         // Actualizar interfaces
         renderLettersForDate(currentSelectedDate);
         renderAdminLettersList();
         
-        showNotification('🗑️ Carta eliminada');
-        console.log('🗑️ Carta eliminada por admin');
+        showNotification('🗑️ Carta eliminada y sincronizada');
     }
 }
 
