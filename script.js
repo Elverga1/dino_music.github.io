@@ -286,7 +286,28 @@ let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [
 
 // SISTEMA DE ESTADÍSTICAS
 let visitsData = JSON.parse(localStorage.getItem('pageVisits')) || [];
-let currentSelectedDate = new Date().toISOString().split('T')[0]; // Fecha actual
+let currentSelectedDate = getCurrentLocalDate();
+
+// FUNCIÓN CORREGIDA para obtener la fecha actual en hora local
+function getCurrentLocalDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// FUNCIÓN CORREGIDA para formatear fechas en español
+function formatDate(dateString) {
+    const date = new Date(dateString + 'T00:00:00');
+    const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        weekday: 'long'
+    };
+    return date.toLocaleDateString('es-ES', options);
+}
 
 // SISTEMA DE NOTIFICACIONES
 let lastContentUpdate = JSON.parse(localStorage.getItem('lastContentUpdate')) || {
@@ -649,28 +670,38 @@ function registerVisit() {
 
 // SISTEMA DE CARTAS DIARIAS
 function updateDateDisplay() {
-    const today = new Date().toISOString().split('T')[0];
-    const selectedDate = new Date(currentSelectedDate);
+    const selectedDateSpan = document.getElementById('selectedDate');
+    const currentDateDisplay = document.getElementById('currentDateDisplay');
+    const prevDateBtn = document.getElementById('prevDate');
+    const nextDateBtn = document.getElementById('nextDate');
+    
+    if (!selectedDateSpan || !currentDateDisplay) return;
+    
+    const today = getCurrentLocalDate();
     
     if (currentSelectedDate === today) {
         selectedDateSpan.textContent = 'Hoy';
-        nextDateBtn.disabled = true;
+        if (nextDateBtn) nextDateBtn.disabled = true;
     } else {
         selectedDateSpan.textContent = formatDate(currentSelectedDate);
-        nextDateBtn.disabled = false;
+        if (nextDateBtn) nextDateBtn.disabled = false;
     }
     
-    // Verificar si se puede ir al día anterior
-    const firstLetterDate = lettersData.length > 0 ? 
-        lettersData.reduce((min, letter) => letter.date < min ? letter.date : min, lettersData[0].date) : 
-        today;
-    prevDateBtn.disabled = currentSelectedDate <= firstLetterDate;
+    if (prevDateBtn) {
+        const firstLetterDate = lettersData.length > 0 ? 
+            lettersData.reduce((min, letter) => letter.date < min ? letter.date : min, lettersData[0].date) : 
+            today;
+        prevDateBtn.disabled = currentSelectedDate <= firstLetterDate;
+    }
     
     currentDateDisplay.textContent = `Cartas del ${formatDate(currentSelectedDate)}`;
+    
+    console.log('📅 Fecha actual:', getCurrentLocalDate());
+    console.log('📅 Fecha seleccionada:', currentSelectedDate);
 }
 
 function changeDate(direction) {
-    const currentDate = new Date(currentSelectedDate);
+    const currentDate = new Date(currentSelectedDate + 'T00:00:00');
     
     if (direction === 'prev') {
         currentDate.setDate(currentDate.getDate() - 1);
@@ -678,7 +709,11 @@ function changeDate(direction) {
         currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    currentSelectedDate = currentDate.toISOString().split('T')[0];
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    
+    currentSelectedDate = `${year}-${month}-${day}`;
     updateDateDisplay();
     renderLettersForDate(currentSelectedDate);
 }
@@ -899,16 +934,17 @@ function renderAdminLettersList() {
 
 function saveNewLetter() {
     if (!isAdmin) {
-        showNotification('❌ No tienes permisos para esta acción', 'error');
+        showNotification('❌ No tienes permisos', 'error');
         return;
     }
 
-    const title = letterTitle.value.trim();
-    const content = letterContent.value.trim();
-    const date = letterDateInput.value || new Date().toISOString().split('T')[0];
+    const title = document.getElementById('letterTitle')?.value.trim();
+    const content = document.getElementById('letterContent')?.value.trim();
+    const dateInput = document.getElementById('letterDate');
+    const date = dateInput?.value || getCurrentLocalDate();
 
     if (!title || !content) {
-        showNotification('❌ Escribe un título y contenido', 'error');
+        showNotification('❌ Escribe título y contenido', 'error');
         return;
     }
 
@@ -922,19 +958,18 @@ function saveNewLetter() {
 
     lettersData.push(newLetter);
     localStorage.setItem('loveLetters', JSON.stringify(lettersData));
+    updateLettersTimestamp();
     
-    // Actualizar interfaces
     if (date === currentSelectedDate) {
         renderLettersForDate(currentSelectedDate);
     }
-    renderAdminLettersList();
+    if (isAdmin) {
+        renderAdminLettersList();
+    }
+    
     clearEditorForm();
-    
-    // Disparar notificación de nuevo contenido
-    setTimeout(checkForNewContent, 1000);
-    
     showNotification('💖 Carta guardada correctamente');
-    console.log('📝 Nueva carta guardada por admin');
+    console.log('💌 Carta guardada con fecha:', date);
 }
 
 function deleteLetter(letterId) {
@@ -980,6 +1015,11 @@ function updateCharCounters() {
 }
 
 function setupEventListeners() {
+    const letterDateInput = document.getElementById('letterDate');
+    if (letterDateInput) {
+        letterDateInput.value = getCurrentLocalDate();
+    }
+    
      // Navegación entre secciones
     document.querySelectorAll('.nav-btn').forEach(button => {
         button.addEventListener('click', function() {
