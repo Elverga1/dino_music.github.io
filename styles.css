@@ -5,9 +5,9 @@
 }
 
 :root {
-    --primary-color: #667eea;
+    --primary-color: #4F0B37;
     --secondary-color: #764ba2;
-    --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --background: linear-gradient(135deg, #4F0B37 0%, #764ba2 100%);
     --card-bg: #ffffff;
     --text-primary: #333333;
     --text-secondary: #666666;
