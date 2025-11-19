@@ -441,6 +441,20 @@ function changeDate(direction) {
     renderLettersForDate(currentSelectedDate);
 }
 
+function checkForAutoUpdate() {
+    const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
+    const lastChecked = parseInt(lastUpdateCheck);
+    
+    if (currentTimestamp > lastChecked) {
+        console.log('🔄 Cambios detectados, actualizando...');
+        performAutoUpdate();
+    }
+    
+    lastUpdateCheck = Date.now();
+    localStorage.setItem('lastUpdateCheck', lastUpdateCheck);
+}
+
+
 // SISTEMA DE SINCRONIZACIÓN MEJORADO
 let lastSyncTime = 0;
 
