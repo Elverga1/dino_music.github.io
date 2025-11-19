@@ -175,6 +175,18 @@ const artistsData = [
                 title: "Ciudad gris",
                 url: "https://music.youtube.com/watch?v=rushbkC4keE&si=ITc_a5Fx2KhUAGwg",
                 duration: "3:29"
+            },
+            {
+                id: 28,
+                title: "Otra vez te soñe",
+                url: "https://music.youtube.com/watch?v=VCUtQl0tN2Y&si=tXHkE_bPegqh6-qX",
+                duration: "2:46"
+            },
+            {
+                id: 29,
+                title: "Ella es una G",
+                url: "https://music.youtube.com/watch?v=l1_BKMn-gO0&si=ocCXeQh58jzXV7Zb",
+                duration: "3:37"
             }
         ]
     },
@@ -185,37 +197,37 @@ const artistsData = [
         fallbackEmoji: "🦅",
         songs: [
             {
-                id: 28,
+                id: 30,
                 title: "Celine",
                 url: "https://music.youtube.com/watch?v=RSGli9HFfeY&si=PX8vG-EuB524BONg",
                 duration: "2:57"
             },
             {
-                id: 29,
+                id: 31,
                 title: "Ma´ vie",
-                url: "https://music.youtube.com/watch?v=keo_problem",
-                duration: "3:15"
+                url: "https://music.youtube.com/watch?v=2fm3H_ZC9ro&si=_DeRUA8uc3I36BTy",
+                duration: "3:54"
             },
             {
-                id: 30,
+                id: 32,
                 title: "Moon talk",
                 url: "https://music.youtube.com/watch?v=n4uh3_nxQqo&si=IAj0T_LKE-tj7lD8",
                 duration: "3:05"
             },
             {
-                id: 31,
+                id: 33,
                 title: "Besos",
                 url: "https://music.youtube.com/watch?v=f69cr-CALkY&si=v8aFsLfhF_bUl7p109",
                 duration: "2:53"
             },
             {
-                id: 32,
+                id: 34,
                 title: "Como vas?",
                 url: "https://music.youtube.com/watch?v=71J3hilV7Es&si=TeVG9rB4zok-go7J",
                 duration: "2:41"
             },
             {
-                id: 33,
+                id: 35,
                 title: "L´AMOUR",
                 url: "https://music.youtube.com/watch?v=17bKQIFGpb4&si=-mLAG3YaCpXiY1Z4",
                 duration: "2:10"
@@ -229,22 +241,22 @@ const artistsData = [
         fallbackEmoji: "🦅",
         songs: [
             {
-                id: 34,
-                title: "Bombon",
-                url: "https://music.youtube.com/watch?v=RSGli9HFfeY&si=PX8vG-EuB524BONg",
-                duration: "2:57"
-            },
-            {
-                id: 35,
-                title: "Mil maneras de morir",
-                url: "https://music.youtube.com/watch?v=keo_problem",
-                duration: "3:15"
-            },
-            {
                 id: 36,
-                title: "No lo encuentro",
-                url: "https://music.youtube.com/watch?v=n4uh3_nxQqo&si=IAj0T_LKE-tj7lD8",
-                duration: "3:05"
+                title: "Bombon",
+                url: "https://music.youtube.com/watch?v=jLau33KRAuE&si=s3JLU1Sa_N3SSR6K",
+                duration: "2:41"
+            },
+            {
+                id: 37,
+                title: "Mil maneras de morir",
+                url: "https://music.youtube.com/watch?v=pHYPrB87rmg&si=tikCPndSbYWBUmaZ",
+                duration: "2:55"
+            },
+            {
+                id: 38,
+                title: "Tu me encantas",
+                url: "https://music.youtube.com/watch?v=fGm9xsDjnOg&si=WmsmEP8mP2U9jBSC",
+                duration: "2:37"
             }
         ]
     }
