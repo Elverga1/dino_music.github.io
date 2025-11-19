@@ -1,5 +1,5 @@
 const ADMIN_CONFIG = {
-    password: "DinoPeque123"
+    password: "DinoPeque123",
     sessionTimeout: 60 * 60 * 1000
 }
 
