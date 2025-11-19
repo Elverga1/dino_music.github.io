@@ -394,6 +394,123 @@ function checkForNewContent() {
     updateNotificationBadges();
 }
 
+// SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA
+let lastUpdateCheck = localStorage.getItem('lastUpdateCheck') || Date.now();
+let autoUpdateInterval = null;
+
+// Función para verificar cambios automáticamente
+function checkForAutoUpdate() {
+    const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
+    const lastChecked = parseInt(lastUpdateCheck);
+    
+    if (currentTimestamp > lastChecked) {
+        console.log('🔄 Cambios detectados, actualizando automáticamente...');
+        performAutoUpdate();
+    }
+    
+    // Actualizar último chequeo
+    lastUpdateCheck = Date.now();
+    localStorage.setItem('lastUpdateCheck', lastUpdateCheck);
+}
+
+// Función para realizar la actualización automática
+function performAutoUpdate() {
+    // Recargar datos del localStorage
+    const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
+    
+    // Solo actualizar si hay cambios reales
+    if (JSON.stringify(updatedLetters) !== JSON.stringify(lettersData)) {
+        lettersData = updatedLetters;
+        
+        // Actualizar interfaz
+        renderLettersForDate(currentSelectedDate);
+        if (isAdmin) {
+            renderAdminLettersList();
+        }
+        
+        // Mostrar notificación sutil
+        showAutoUpdateNotification();
+        
+        console.log('✅ Cartas actualizadas automáticamente');
+    }
+}
+
+// Versión completamente silenciosa (sin notificación)
+function performAutoUpdate() {
+    const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
+    
+    if (JSON.stringify(updatedLetters) !== JSON.stringify(lettersData)) {
+        lettersData = updatedLetters;
+        renderLettersForDate(currentSelectedDate);
+        if (isAdmin) {
+            renderAdminLettersList();
+        }
+        console.log('✅ Cartas actualizadas silenciosamente');
+    }
+}
+// Modificar las funciones de admin para forzar actualización en otros dispositivos
+function updateLettersTimestamp() {
+    const timestamp = Date.now();
+    localStorage.setItem('loveLettersTimestamp', timestamp);
+    console.log('⏰ Timestamp actualizado:', timestamp);
+}
+
+// Sobrescribir saveNewLetter para incluir timestamp
+const originalSaveNewLetter = saveNewLetter;
+saveNewLetter = function() {
+    const result = originalSaveNewLetter();
+    if (result !== false) { // Si se guardó correctamente
+        updateLettersTimestamp();
+    }
+    return result;
+};
+
+// Sobrescribir deleteLetter para incluir timestamp
+const originalDeleteLetter = deleteLetter;
+deleteLetter = function(letterId) {
+    const result = originalDeleteLetter(letterId);
+    if (result !== false) { // Si se eliminó correctamente
+        updateLettersTimestamp();
+    }
+    return result;
+};
+
+// Inicializar el sistema de auto-actualización
+function initializeAutoUpdate() {
+    console.log('🔄 Iniciando sistema de auto-actualización');
+    
+    // Verificar cambios cada 5 segundos
+    autoUpdateInterval = setInterval(checkForAutoUpdate, 5000);
+    
+    // También verificar cuando la página se vuelve visible
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            checkForAutoUpdate();
+        }
+    });
+    
+    // Verificar inmediatamente al cargar
+    setTimeout(checkForAutoUpdate, 1000);
+}
+
+// Detener auto-actualización cuando sea necesario
+function stopAutoUpdate() {
+    if (autoUpdateInterval) {
+        clearInterval(autoUpdateInterval);
+        autoUpdateInterval = null;
+    }
+}
+
+// Agregar al initializeApp
+const originalInitializeApp = initializeApp;
+initializeApp = function() {
+    originalInitializeApp();
+    initializeAutoUpdate();
+};
+
+// Limpiar al cerrar la página (opcional)
+window.addEventListener('beforeunload', stopAutoUpdate);
+
 function showNewContentNotification(message) {
     // Crear notificación especial para nuevo contenido
     const notification = document.createElement('div');
