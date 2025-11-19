@@ -274,14 +274,6 @@ const artistsData = [
 ];
 //Sistema de cartas
 let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [
-    // Cartas de ejemplo - puedes borrarlas
-    {
-        id: 1,
-        title: "Bienvenida a Mi Mundo",
-        content: "Hola amor,\n\nEste es un espacio especial que creé solo para ti. Aquí encontrarás música que me hace pensar en ti y cartitas que escribo con todo mi cariño.\n\nEspero que te guste 💖",
-        date: new Date().toISOString().split('T')[0],
-        timestamp: new Date().getTime()
-    }
 ];
 
 // SISTEMA DE ESTADÍSTICAS
