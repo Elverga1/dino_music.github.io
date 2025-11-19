@@ -3,23 +3,64 @@ const ADMIN_CONFIG = {
     sessionTimeout: 60 * 60 * 1000
 }
 
-// FUNCIÓN CORREGIDA para obtener la fecha actual en hora local
+// FUNCIÓN MEJORADA para obtener la fecha actual
 function getCurrentLocalDate() {
     const now = new Date();
+    
+    // FORZAR verificación de la fecha real
+    console.log('📅 Fecha del sistema:', now.toString());
+    console.log('📅 Día de la semana:', now.getDay()); // 0=Domingo, 1=Lunes, ..., 3=Miércoles
+    
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    
+    const fechaActual = `${year}-${month}-${day}`;
+    console.log('✅ Fecha actual calculada:', fechaActual);
+    
+    return fechaActual;
 }
 
-// FUNCIÓN CORREGIDA para formatear fechas en español
+// FUNCIÓN MEJORADA para formatear fechas en español - VERSIÓN CORREGIDA
 function formatDate(dateString) {
-    const dateParts = dateString.split('-');
-    const year = parseInt(dateParts[0]);
-    const month = parseInt(dateParts[1]) - 1;
-    const day = parseInt(dateParts[2]);
+    console.log('🔍 Formateando fecha:', dateString);
+    
+    // FORZAR la fecha actual si hay problemas
+    if (!dateString || dateString === 'undefined') {
+        dateString = getCurrentLocalDate();
+    }
+    
+    // Asegurarnos de que tenemos el formato correcto (YYYY-MM-DD)
+    let year, month, day;
+    
+    if (dateString.includes('-')) {
+        // Formato YYYY-MM-DD
+        const dateParts = dateString.split('-');
+        year = parseInt(dateParts[0]);
+        month = parseInt(dateParts[1]) - 1; // Meses en JS: 0-11
+        day = parseInt(dateParts[2]);
+    } else {
+        // Si no es el formato esperado, usar fecha actual
+        const today = new Date();
+        year = today.getFullYear();
+        month = today.getMonth();
+        day = today.getDate();
+        console.log('⚠️  Usando fecha actual forzada');
+    }
     
     const date = new Date(year, month, day);
+    
+    // VERIFICAR que la fecha sea válida
+    if (isNaN(date.getTime())) {
+        console.error('❌ Fecha inválida, usando fecha actual');
+        const today = new Date();
+        return today.toLocaleDateString('es-ES', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric'
+        });
+    }
     
     const options = { 
         year: 'numeric', 
@@ -27,6 +68,12 @@ function formatDate(dateString) {
         day: 'numeric',
         weekday: 'long'
     };
+    
+    const fechaFormateada = date.toLocaleDateString('es-ES', options);
+    console.log('✅ Fecha formateada:', fechaFormateada);
+    
+    return fechaFormateada;
+}
     
     return date.toLocaleDateString('es-ES', options);
 }
