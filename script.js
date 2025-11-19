@@ -133,6 +133,48 @@ const artistsData = [
                 title: "Secretos",
                 url: "https://music.youtube.com/watch?v=5ofsh8xHs4g&si=MypRO3XHRGOBaBEP",
                 duration: "2:41"
+            }, 
+            {
+                id: 21,
+                title: "Amaneci",
+                url: "https://music.youtube.com/watch?v=Jr01z7aASGs&si=zeyKXyaJrvRXYkRZ",
+                duration: "3:23"
+            },
+            {
+                id: 22,
+                title: "Ahora",
+                url: "https://music.youtube.com/watch?v=PR7F8uLTXnA&si=s3S-zP1ujHCt1Ilp",
+                duration: "3:32"
+            },
+            {
+                id: 23,
+                title: "Sin preguntar",
+                url: "https://music.youtube.com/watch?v=yXWoEV0anzk&si=IIg1Y_vIqsZoUtL5",
+                duration: "3:14"
+            },
+            {
+                id: 24,
+                title: "Abismo",
+                url: "https://music.youtube.com/watch?v=VdB6PrtxVCo&si=O0K_K9mJOTWPoGBw",
+                duration: "2:54"
+            },
+            {
+                id: 25,
+                title: "Temor",
+                url: "https://music.youtube.com/watch?v=a--vYCvefa0&si=CTkoP80oSrfb03CR",
+                duration: "3:24"
+            },
+            {
+                id: 26,
+                title: "A tu manera",
+                url: "https://music.youtube.com/watch?v=U7XL3gcsHCc&si=-tBTw_WrS6EWVQjt",
+                duration: "3:16"
+            },
+            {
+                id: 27,
+                title: "Ciudad gris",
+                url: "https://music.youtube.com/watch?v=rushbkC4keE&si=ITc_a5Fx2KhUAGwg",
+                duration: "3:29"
             }
         ]
     },
@@ -143,37 +185,37 @@ const artistsData = [
         fallbackEmoji: "🦅",
         songs: [
             {
-                id: 21,
+                id: 28,
                 title: "Celine",
                 url: "https://music.youtube.com/watch?v=RSGli9HFfeY&si=PX8vG-EuB524BONg",
                 duration: "2:57"
             },
             {
-                id: 22,
+                id: 29,
                 title: "Ma´ vie",
                 url: "https://music.youtube.com/watch?v=keo_problem",
                 duration: "3:15"
             },
             {
-                id: 23,
+                id: 30,
                 title: "Moon talk",
                 url: "https://music.youtube.com/watch?v=n4uh3_nxQqo&si=IAj0T_LKE-tj7lD8",
                 duration: "3:05"
             },
             {
-                id: 24,
+                id: 31,
                 title: "Besos",
                 url: "https://music.youtube.com/watch?v=f69cr-CALkY&si=v8aFsLfhF_bUl7p109",
                 duration: "2:53"
             },
             {
-                id: 25,
+                id: 32,
                 title: "Como vas?",
                 url: "https://music.youtube.com/watch?v=71J3hilV7Es&si=TeVG9rB4zok-go7J",
                 duration: "2:41"
             },
             {
-                id: 26,
+                id: 33,
                 title: "L´AMOUR",
                 url: "https://music.youtube.com/watch?v=17bKQIFGpb4&si=-mLAG3YaCpXiY1Z4",
                 duration: "2:10"
