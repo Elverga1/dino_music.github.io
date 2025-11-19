@@ -257,6 +257,12 @@ const artistsData = [
                 title: "Tu me encantas",
                 url: "https://music.youtube.com/watch?v=fGm9xsDjnOg&si=WmsmEP8mP2U9jBSC",
                 duration: "2:37"
+            },
+            {
+                id: 39,
+                title: "Por ti",
+                url: "https://music.youtube.com/watch?v=tKzIltxndOs&si=ywfJKmQaWDcYjLmq",
+                duration: "3:04"
             }
         ]
     }
