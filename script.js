@@ -74,9 +74,6 @@ function formatDate(dateString) {
     
     return fechaFormateada;
 }
-    
-    return date.toLocaleDateString('es-ES', options);
-}
 
 let currentSelectedDate = getCurrentLocalDate();
 
