@@ -3,6 +3,34 @@ const ADMIN_CONFIG = {
     sessionTimeout: 60 * 60 * 1000
 }
 
+// FUNCIÓN CORREGIDA para obtener la fecha actual en hora local
+function getCurrentLocalDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// FUNCIÓN CORREGIDA para formatear fechas en español
+function formatDate(dateString) {
+    const dateParts = dateString.split('-');
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1;
+    const day = parseInt(dateParts[2]);
+    
+    const date = new Date(year, month, day);
+    
+    const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        weekday: 'long'
+    };
+    
+    return date.toLocaleDateString('es-ES', options);
+}
+
 // BASE DE DATOS DE ARTISTAS - FÁCIL DE EDITAR
 const artistsData = [
     {
@@ -278,36 +306,6 @@ let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [
 
 // SISTEMA DE ESTADÍSTICAS
 let visitsData = JSON.parse(localStorage.getItem('pageVisits')) || [];
-let currentSelectedDate = getCurrentLocalDate();
-
-// FUNCIÓN CORREGIDA para obtener la fecha actual en hora local
-function getCurrentLocalDate() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-// FUNCIÓN CORREGIDA para formatear fechas en español
-function formatDate(dateString) {
-    // Asegurarnos de que la fecha se parsea correctamente
-    const dateParts = dateString.split('-');
-    const year = parseInt(dateParts[0]);
-    const month = parseInt(dateParts[1]) - 1; // Meses en JS son 0-11
-    const day = parseInt(dateParts[2]);
-    
-    const date = new Date(year, month, day);
-    
-    const options = { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        weekday: 'long'
-    };
-    
-    return date.toLocaleDateString('es-ES', options);
-}
 
 // SISTEMA DE NOTIFICACIONES
 let lastContentUpdate = JSON.parse(localStorage.getItem('lastContentUpdate')) || {
@@ -315,6 +313,9 @@ let lastContentUpdate = JSON.parse(localStorage.getItem('lastContentUpdate')) ||
     songs: 0,
     lastCheck: Date.now()
 };
+
+let lastUpdateCheck = localStorage.getItem('lastUpdateCheck') || Date.now();
+let autoUpdateInterval = null;
 
 // Estado de la aplicación
 let currentSearch = '';
@@ -372,13 +373,105 @@ function initializeApp() {
         renderLettersForDate(currentSelectedDate);
         renderStatistics();
         updateAdminInterface();
-        setupRealTimeUpdates();
-        requestNotificationPermission();
         console.log('✅ Aplicación iniciada correctamente');
     }, 800);
-    setTimeout(() => {
-        updateDateDisplay();
-    }, 1000);
+}
+
+function updateDateDisplay() {
+    console.log('🔄 Actualizando display de fecha...');
+    
+    const selectedDateSpan = document.getElementById('selectedDate');
+    const currentDateDisplay = document.getElementById('currentDateDisplay');
+    
+    if (!selectedDateSpan || !currentDateDisplay) {
+        console.error('❌ Elementos de fecha no encontrados');
+        return;
+    }
+    
+    const today = getCurrentLocalDate();
+    
+    console.log('📅 DEBUG FECHAS:');
+    console.log(' - Hoy:', today);
+    console.log(' - Seleccionada:', currentSelectedDate);
+    console.log(' - Hoy formateado:', formatDate(today));
+    console.log(' - Seleccionada formateado:', formatDate(currentSelectedDate));
+    
+    // Actualizar el span de fecha seleccionada
+    if (currentSelectedDate === today) {
+        selectedDateSpan.textContent = 'Hoy';
+        if (nextDateBtn) nextDateBtn.disabled = true;
+    } else {
+        selectedDateSpan.textContent = formatDate(currentSelectedDate);
+        if (nextDateBtn) nextDateBtn.disabled = false;
+    }
+    
+    // Actualizar el display principal
+    currentDateDisplay.textContent = `Cartas del ${formatDate(currentSelectedDate)}`;
+    
+    // Actualizar botón anterior
+    if (prevDateBtn) {
+        const firstLetterDate = lettersData.length > 0 ? 
+            lettersData.reduce((min, letter) => letter.date < min ? letter.date : min, lettersData[0].date) : 
+            today;
+        prevDateBtn.disabled = currentSelectedDate <= firstLetterDate;
+    }
+}
+
+function changeDate(direction) {
+    const currentDate = new Date(currentSelectedDate + 'T00:00:00');
+    
+    if (direction === 'prev') {
+        currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    
+    currentSelectedDate = `${year}-${month}-${day}`;
+    updateDateDisplay();
+    renderLettersForDate(currentSelectedDate);
+}
+
+// SISTEMA DE AUTO-UPDATE SIMPLIFICADO
+function checkForAutoUpdate() {
+    const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
+    const lastChecked = parseInt(lastUpdateCheck);
+    
+    if (currentTimestamp > lastChecked) {
+        console.log('🔄 Cambios detectados, actualizando...');
+        performAutoUpdate();
+    }
+    
+    lastUpdateCheck = Date.now();
+    localStorage.setItem('lastUpdateCheck', lastUpdateCheck);
+}
+
+function performAutoUpdate() {
+    const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
+    
+    if (JSON.stringify(updatedLetters) !== JSON.stringify(lettersData)) {
+        lettersData = updatedLetters;
+        renderLettersForDate(currentSelectedDate);
+        if (isAdmin) {
+            renderAdminLettersList();
+        }
+        console.log('✅ Cartas actualizadas automáticamente');
+    }
+}
+
+function updateLettersTimestamp() {
+    const timestamp = Date.now();
+    localStorage.setItem('loveLettersTimestamp', timestamp);
+}
+
+function initializeAutoUpdate() {
+    autoUpdateInterval = setInterval(checkForAutoUpdate, 5000);
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) checkForAutoUpdate();
+    });
 }
 
 // SISTEMA DE NOTIFICACIONES
@@ -422,63 +515,6 @@ function checkForNewContent() {
 let lastUpdateCheck = localStorage.getItem('lastUpdateCheck') || Date.now();
 let autoUpdateInterval = null;
 
-// Función para verificar cambios automáticamente
-function checkForAutoUpdate() {
-    const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
-    const lastChecked = parseInt(lastUpdateCheck);
-    
-    if (currentTimestamp > lastChecked) {
-        console.log('🔄 Cambios detectados, actualizando automáticamente...');
-        performAutoUpdate();
-    }
-    
-    // Actualizar último chequeo
-    lastUpdateCheck = Date.now();
-    localStorage.setItem('lastUpdateCheck', lastUpdateCheck);
-}
-
-// Función para realizar la actualización automática
-function performAutoUpdate() {
-    // Recargar datos del localStorage
-    const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
-    
-    // Solo actualizar si hay cambios reales
-    if (JSON.stringify(updatedLetters) !== JSON.stringify(lettersData)) {
-        lettersData = updatedLetters;
-        
-        // Actualizar interfaz
-        renderLettersForDate(currentSelectedDate);
-        if (isAdmin) {
-            renderAdminLettersList();
-        }
-        
-        // Mostrar notificación sutil
-        showAutoUpdateNotification();
-        
-        console.log('✅ Cartas actualizadas automáticamente');
-    }
-}
-
-// Versión completamente silenciosa (sin notificación)
-function performAutoUpdate() {
-    const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
-    
-    if (JSON.stringify(updatedLetters) !== JSON.stringify(lettersData)) {
-        lettersData = updatedLetters;
-        renderLettersForDate(currentSelectedDate);
-        if (isAdmin) {
-            renderAdminLettersList();
-        }
-        console.log('✅ Cartas actualizadas silenciosamente');
-    }
-}
-// Modificar las funciones de admin para forzar actualización en otros dispositivos
-function updateLettersTimestamp() {
-    const timestamp = Date.now();
-    localStorage.setItem('loveLettersTimestamp', timestamp);
-    console.log('⏰ Timestamp actualizado:', timestamp);
-}
-
 // Sobrescribir saveNewLetter para incluir timestamp
 const originalSaveNewLetter = saveNewLetter;
 saveNewLetter = function() {
@@ -499,23 +535,6 @@ deleteLetter = function(letterId) {
     return result;
 };
 
-// Inicializar el sistema de auto-actualización
-function initializeAutoUpdate() {
-    console.log('🔄 Iniciando sistema de auto-actualización');
-    
-    // Verificar cambios cada 5 segundos
-    autoUpdateInterval = setInterval(checkForAutoUpdate, 5000);
-    
-    // También verificar cuando la página se vuelve visible
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            checkForAutoUpdate();
-        }
-    });
-    
-    // Verificar inmediatamente al cargar
-    setTimeout(checkForAutoUpdate, 1000);
-}
 
 // Detener auto-actualización cuando sea necesario
 function stopAutoUpdate() {
@@ -644,8 +663,7 @@ function registerVisit() {
     const today = now.toISOString().split('T')[0];
     const time = now.toLocaleTimeString('es-ES', { 
         hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
+        minute: '2-digit'
     });
 
     // Buscar si ya hay registro para hoy
@@ -655,95 +673,36 @@ function registerVisit() {
         // Incrementar contador del día
         todayVisit.visits++;
         todayVisit.lastVisit = time;
-        todayVisit.timestamps.push(now.getTime());
     } else {
         // Nuevo registro para el día
         visitsData.push({
             date: today,
             visits: 1,
-            lastVisit: time,
-            timestamps: [now.getTime()]
+            lastVisit: time
         });
     }
 
     // Guardar en localStorage
     localStorage.setItem('pageVisits', JSON.stringify(visitsData));
-    console.log('📈 Visita registrada:', today);
-}
-
-// SISTEMA DE CARTAS DIARIAS
-function updateDateDisplay() {
-    const selectedDateSpan = document.getElementById('selectedDate');
-    const currentDateDisplay = document.getElementById('currentDateDisplay');
-    const prevDateBtn = document.getElementById('prevDate');
-    const nextDateBtn = document.getElementById('nextDate');
-    
-    if (!selectedDateSpan || !currentDateDisplay) return;
-    
-    const today = getCurrentLocalDate();
-    
-    // DEBUG DETALLADO
-    console.log('🐛 DEBUG FECHAS:');
-    console.log(' - Hoy (raw):', today);
-    console.log(' - Seleccionada (raw):', currentSelectedDate);
-    console.log(' - Hoy (formateada):', formatDate(today));
-    console.log(' - Seleccionada (formateada):', formatDate(currentSelectedDate));
-    
-    if (currentSelectedDate === today) {
-        selectedDateSpan.textContent = 'Hoy';
-        if (nextDateBtn) nextDateBtn.disabled = true;
-    } else {
-        selectedDateSpan.textContent = formatDate(currentSelectedDate);
-        if (nextDateBtn) nextDateBtn.disabled = false;
-    }
-    
-    if (prevDateBtn) {
-        const firstLetterDate = lettersData.length > 0 ? 
-            lettersData.reduce((min, letter) => letter.date < min ? letter.date : min, lettersData[0].date) : 
-            today;
-        prevDateBtn.disabled = currentSelectedDate <= firstLetterDate;
-    }
-    
-    currentDateDisplay.textContent = `Cartas del ${formatDate(currentSelectedDate)}`;
-}
-
-function changeDate(direction) {
-    const currentDate = new Date(currentSelectedDate + 'T00:00:00');
-    
-    if (direction === 'prev') {
-        currentDate.setDate(currentDate.getDate() - 1);
-    } else if (direction === 'next') {
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const day = String(currentDate.getDate()).padStart(2, '0');
-    
-    currentSelectedDate = `${year}-${month}-${day}`;
-    updateDateDisplay();
-    renderLettersForDate(currentSelectedDate);
 }
 
 function renderLettersForDate(date) {
+    if (!lettersContainer) return;
+    
     const lettersForDate = lettersData.filter(letter => letter.date === date);
     
     if (lettersForDate.length === 0) {
         lettersContainer.innerHTML = `
             <div class="empty-state" style="display: block; color: #666;">
-                <i class="fas fa-feather" style="font-size: 3em;"></i>
+                <i class="fas fa-feather"></i>
                 <h3>No hay cartas para este día</h3>
-                <p>${date === new Date().toISOString().split('T')[0] ? 
-                    '¡Vuelve más tarde! 💖' : 
-                    'No se escribieron cartas este día'}</p>
+                <p>${date === getCurrentLocalDate() ? '¡Vuelve más tarde! 💖' : 'No se escribieron cartas este día'}</p>
             </div>
         `;
         return;
     }
 
-    // Ordenar cartas por timestamp (más reciente primero)
     const sortedLetters = [...lettersForDate].sort((a, b) => b.timestamp - a.timestamp);
-
     lettersContainer.innerHTML = sortedLetters.map(letter => `
         <div class="letter-card">
             <div class="letter-header">
@@ -1022,12 +981,12 @@ function updateCharCounters() {
 }
 
 function setupEventListeners() {
-    const letterDateInput = document.getElementById('letterDate');
+    // Fecha por defecto en editor
     if (letterDateInput) {
         letterDateInput.value = getCurrentLocalDate();
     }
     
-     // Navegación entre secciones
+    // Navegación
     document.querySelectorAll('.nav-btn').forEach(button => {
         button.addEventListener('click', function() {
             const section = this.getAttribute('data-section');
@@ -1036,35 +995,37 @@ function setupEventListeners() {
     });
 
     // Navegación de fechas
-    prevDateBtn.addEventListener('click', () => changeDate('prev'));
-    nextDateBtn.addEventListener('click', () => changeDate('next'));
+    if (prevDateBtn) prevDateBtn.addEventListener('click', () => changeDate('prev'));
+    if (nextDateBtn) nextDateBtn.addEventListener('click', () => changeDate('next'));
 
-    // Fecha por defecto en editor
-    letterDateInput.value = new Date().toISOString().split('T')[0];
-    
     // Búsqueda
-    searchInput.addEventListener('input', debounce(function(e) {
-        currentSearch = e.target.value.toLowerCase().trim();
-        clearSearch.style.display = currentSearch ? 'block' : 'none';
-        renderArtists();
-        updateStats();
-    }, 300));
+    if (searchInput && clearSearch) {
+        searchInput.addEventListener('input', debounce(function(e) {
+            currentSearch = e.target.value.toLowerCase().trim();
+            clearSearch.style.display = currentSearch ? 'block' : 'none';
+            renderArtists();
+            updateStats();
+        }, 300));
 
-    // Limpiar búsqueda
-    clearSearch.addEventListener('click', function() {
-        searchInput.value = '';
-        currentSearch = '';
-        clearSearch.style.display = 'none';
-        renderArtists();
-        updateStats();
-        searchInput.focus();
-    });
+        clearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            currentSearch = '';
+            clearSearch.style.display = 'none';
+            renderArtists();
+            updateStats();
+            searchInput.focus();
+        });
+    }
 
-    // Sistema de autenticación
-    adminLoginBtn.addEventListener('click', showLoginModal);
-    logoutBtn.addEventListener('click', logout);
-    loginBtn.addEventListener('click', attemptLogin);
-    closeModal.addEventListener('click', hideLoginModal);
+    // Sistema admin
+    if (adminLoginBtn) adminLoginBtn.addEventListener('click', showLoginModal);
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+    if (loginBtn) loginBtn.addEventListener('click', attemptLogin);
+    if (closeModal) closeModal.addEventListener('click', hideLoginModal);
+
+    // Editor de cartas
+    if (saveLetter) saveLetter.addEventListener('click', saveNewLetter);
+    if (clearEditor) clearEditor.addEventListener('click', clearEditorForm);
 
     // Cerrar modal al hacer click fuera
     window.addEventListener('click', function(e) {
@@ -1072,14 +1033,6 @@ function setupEventListeners() {
             hideLoginModal();
         }
     });
-
-    // Editor de cartas
-    saveLetter.addEventListener('click', saveNewLetter);
-    clearEditor.addEventListener('click', clearEditorForm);
-
-    // Contadores de caracteres
-    letterTitle.addEventListener('input', updateCharCounters);
-    letterContent.addEventListener('input', updateCharCounters);
 }
 
 function renderArtists() {
@@ -1192,7 +1145,7 @@ function formatTime(timestamp) {
 
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
-    const bgColor = type === 'error' ? '#dc3545' : type === 'warning' ? '#ffc107' : '#28a745';
+    const bgColor = type === 'error' ? '#dc3545' : '#28a745';
     
     notification.style.cssText = `
         position: fixed;
@@ -1201,17 +1154,14 @@ function showNotification(message, type = 'success') {
         background: ${bgColor};
         color: white;
         padding: 15px 20px;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow);
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         z-index: 10000;
-        animation: slideIn 0.3s ease;
     `;
     notification.textContent = message;
     document.body.appendChild(notification);
     
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
+    setTimeout(() => notification.remove(), 3000);
 }
 
 // Utilidad para debounce
@@ -1227,6 +1177,7 @@ function debounce(func, wait) {
     };
 }
 
+// AGREGAR ESTILOS PARA ANIMACIONES
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideIn {
