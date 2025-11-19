@@ -291,13 +291,21 @@ function getCurrentLocalDate() {
 
 // FUNCIÓN CORREGIDA para formatear fechas en español
 function formatDate(dateString) {
-    const date = new Date(dateString + 'T00:00:00');
+    // Asegurarnos de que la fecha se parsea correctamente
+    const dateParts = dateString.split('-');
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1; // Meses en JS son 0-11
+    const day = parseInt(dateParts[2]);
+    
+    const date = new Date(year, month, day);
+    
     const options = { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric',
         weekday: 'long'
     };
+    
     return date.toLocaleDateString('es-ES', options);
 }
 
@@ -368,6 +376,9 @@ function initializeApp() {
         requestNotificationPermission();
         console.log('✅ Aplicación iniciada correctamente');
     }, 800);
+    setTimeout(() => {
+        updateDateDisplay();
+    }, 1000);
 }
 
 // SISTEMA DE NOTIFICACIONES
@@ -671,6 +682,13 @@ function updateDateDisplay() {
     
     const today = getCurrentLocalDate();
     
+    // DEBUG DETALLADO
+    console.log('🐛 DEBUG FECHAS:');
+    console.log(' - Hoy (raw):', today);
+    console.log(' - Seleccionada (raw):', currentSelectedDate);
+    console.log(' - Hoy (formateada):', formatDate(today));
+    console.log(' - Seleccionada (formateada):', formatDate(currentSelectedDate));
+    
     if (currentSelectedDate === today) {
         selectedDateSpan.textContent = 'Hoy';
         if (nextDateBtn) nextDateBtn.disabled = true;
@@ -687,9 +705,6 @@ function updateDateDisplay() {
     }
     
     currentDateDisplay.textContent = `Cartas del ${formatDate(currentSelectedDate)}`;
-    
-    console.log('📅 Fecha actual:', getCurrentLocalDate());
-    console.log('📅 Fecha seleccionada:', currentSelectedDate);
 }
 
 function changeDate(direction) {
