@@ -211,6 +211,36 @@
         <p>Cargando artistas...</p>
     </div>
 
+    <!-- Configuración de Notificaciones -->
+    <div class="notification-settings">
+        <button class="notification-toggle" id="notificationToggle">
+            <i class="fas fa-bell"></i>
+        </button>
+        <div class="notification-panel" id="notificationPanel">
+            <h4><i class="fas fa-cog"></i> Configurar Notificaciones</h4>
+            <div class="notification-option">
+                <span>Notificaciones de nuevo contenido</span>
+                <label class="switch">
+                    <input type="checkbox" id="enableNotifications" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="notification-option">
+                <span>Notificaciones del navegador</span>
+                <button class="btn-secondary" id="requestPermissionBtn">
+                    <i class="fas fa-check"></i> Permitir
+                </button>
+            </div>
+            <div class="notification-option">
+                <span>Sonido de notificación</span>
+                <label class="switch">
+                    <input type="checkbox" id="enableSound" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
