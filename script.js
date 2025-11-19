@@ -511,10 +511,6 @@ function checkForNewContent() {
     updateNotificationBadges();
 }
 
-// SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA
-let lastUpdateCheck = localStorage.getItem('lastUpdateCheck') || Date.now();
-let autoUpdateInterval = null;
-
 // Sobrescribir saveNewLetter para incluir timestamp
 const originalSaveNewLetter = saveNewLetter;
 saveNewLetter = function() {
@@ -524,17 +520,6 @@ saveNewLetter = function() {
     }
     return result;
 };
-
-// Sobrescribir deleteLetter para incluir timestamp
-const originalDeleteLetter = deleteLetter;
-deleteLetter = function(letterId) {
-    const result = originalDeleteLetter(letterId);
-    if (result !== false) { // Si se eliminó correctamente
-        updateLettersTimestamp();
-    }
-    return result;
-};
-
 
 // Detener auto-actualización cuando sea necesario
 function stopAutoUpdate() {
