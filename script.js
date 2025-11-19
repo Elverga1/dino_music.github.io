@@ -31,6 +31,8 @@ function formatDate(dateString) {
     return date.toLocaleDateString('es-ES', options);
 }
 
+let currentSelectedDate = getCurrentLocalDate();
+
 // BASE DE DATOS DE ARTISTAS - FÁCIL DE EDITAR
 const artistsData = [
     {
