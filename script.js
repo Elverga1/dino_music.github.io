@@ -5,22 +5,28 @@ const ADMIN_CONFIG = {
 
 function getCurrentLocalDate() {
     const now = new Date();
-    // FORZAR verificación de zona horaria local
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
     
-    const fecha = `${year}-${month}-${day}`;
-    console.log('📅 Fecha forzada:', fecha, 'Día real:', now.getDate());
-    return fecha;
+    // Obtener fecha LOCAL correctamente (sin problemas de zona horaria)
+    const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+    const dateString = localDate.toISOString().split('T')[0];
+    
+    console.log('📅 Fecha corregida:', {
+        'Hora local': now.toString(),
+        'Fecha ISO': dateString,
+        'Día del mes': now.getDate(),
+        'Día de la semana': now.getDay()
+    });
+    
+    return dateString;
 }
 
 // FUNCIÓN SIMPLE para formatear fechas
 function formatDate(dateString) {
-    // Si no hay fecha, usar hoy
     if (!dateString) dateString = getCurrentLocalDate();
     
-    const date = new Date(dateString + 'T12:00:00'); // Forzar hora media para evitar problemas de zona horaria
+    // Crear fecha en zona horaria local
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     
     const options = { 
         weekday: 'long',
@@ -442,56 +448,85 @@ function changeDate(direction) {
 }
 
 // SISTEMA DE SINCRONIZACIÓN MEJORADO
-let lastSyncTime = 0;
+let lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || '0');
 
-// Función para ACTUALIZAR timestamp cuando hay cambios
 function markContentUpdated() {
     const timestamp = Date.now();
-    localStorage.setItem('lastContentUpdate', timestamp);
+    localStorage.setItem('lastContentUpdate', timestamp.toString());
     console.log('⏰ Marcando contenido actualizado:', timestamp);
+    
+    // También guardar en un campo específico para cartas
+    localStorage.setItem('lettersLastUpdate', timestamp.toString());
 }
 
-// Función para VERIFICAR cambios en otros dispositivos
 function checkForUpdates() {
     const lastUpdate = parseInt(localStorage.getItem('lastContentUpdate') || '0');
+    const lettersUpdate = parseInt(localStorage.getItem('lettersLastUpdate') || '0');
     
-    if (lastUpdate > lastSyncTime) {
+    console.log('🔄 Verificando actualizaciones...', {
+        lastUpdate,
+        lastSyncTime,
+        lettersUpdate
+    });
+    
+    if (lastUpdate > lastSyncTime || lettersUpdate > lastSyncTime) {
         console.log('🔄 Cambios detectados, sincronizando...');
         syncContent();
-        lastSyncTime = lastUpdate;
+        lastSyncTime = Math.max(lastUpdate, lettersUpdate, Date.now());
+        localStorage.setItem('lastSyncTime', lastSyncTime.toString());
     }
 }
 
-// Función para SINCRONIZAR contenido
 function syncContent() {
-    // Recargar cartas desde localStorage
-    const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
-    
-    // Actualizar solo si hay cambios reales
-    if (JSON.stringify(updatedLetters) !== JSON.stringify(lettersData)) {
-        lettersData = updatedLetters;
-        renderLettersForDate(currentSelectedDate);
-        if (isAdmin) {
-            renderAdminLettersList();
+    try {
+        const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
+        const currentLettersJSON = JSON.stringify(lettersData);
+        const updatedLettersJSON = JSON.stringify(updatedLetters);
+        
+        console.log('📊 Comparando cartas:', {
+            actual: lettersData.length,
+            almacenadas: updatedLetters.length,
+            iguales: currentLettersJSON === updatedLettersJSON
+        });
+        
+        if (currentLettersJSON !== updatedLettersJSON) {
+            lettersData = updatedLetters;
+            renderLettersForDate(currentSelectedDate);
+            
+            if (isAdmin) {
+                renderAdminLettersList();
+            }
+            
+            console.log('✅ Contenido sincronizado correctamente');
+            showNotification('📱 Contenido actualizado', 'success');
+            
+            // Forzar actualización de estadísticas
+            updateNotificationBadges();
         }
-        console.log('✅ Contenido sincronizado');
-        showNotification('📱 Contenido actualizado');
+    } catch (error) {
+        console.error('❌ Error en sincronización:', error);
     }
 }
 
-// Inicializar sincronización
 function initializeSync() {
-    // Verificar cada 3 segundos
-    setInterval(checkForUpdates, 3000);
+    // Inicializar lastSyncTime
+    lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || Date.now().toString());
+    
+    // Verificar cada 2 segundos (más frecuente)
+    setInterval(checkForUpdates, 2000);
     
     // También verificar cuando la página se activa
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
+            console.log('👀 Página visible, verificando actualizaciones...');
             checkForUpdates();
         }
     });
     
-    console.log('🔄 Sistema de sincronización activado');
+    // Verificar inmediatamente al cargar
+    setTimeout(checkForUpdates, 1000);
+    
+    console.log('🔄 Sistema de sincronización MEJORADO activado');
 }
 
 function checkForAutoUpdate() {
@@ -945,7 +980,7 @@ function renderAdminLettersList() {
 function saveNewLetter() {
     if (!isAdmin) {
         showNotification('❌ No tienes permisos', 'error');
-        return;
+        return false;
     }
 
     const title = document.getElementById('letterTitle')?.value.trim();
@@ -954,7 +989,7 @@ function saveNewLetter() {
 
     if (!title || !content) {
         showNotification('❌ Escribe título y contenido', 'error');
-        return;
+        return false;
     }
 
     const newLetter = {
@@ -968,8 +1003,12 @@ function saveNewLetter() {
     lettersData.push(newLetter);
     localStorage.setItem('loveLetters', JSON.stringify(lettersData));
     
-    // ✅ MARCAR CONTENIDO ACTUALIZADO
+    // ✅ MARCAR CONTENIDO ACTUALIZADO DE FORMA MÁS EFECTIVA
     markContentUpdated();
+    
+    // Forzar sincronización inmediata
+    lastSyncTime = 0;
+    localStorage.setItem('lastSyncTime', '0');
     
     // Actualizar interfaces
     if (date === currentSelectedDate) {
@@ -980,7 +1019,9 @@ function saveNewLetter() {
     }
     
     clearEditorForm();
-    showNotification('💖 Carta guardada y sincronizada');
+    showNotification('💖 Carta guardada - Sincronizando con otros dispositivos...');
+    
+    return true;
 }
 
 function deleteLetter(letterId) {
