@@ -313,6 +313,178 @@ const artistsData = [
     }
 ];
 
+function exportarCartas() {
+    const cartas = JSON.parse(localStorage.getItem('loveLetters')) || [];
+    const datos = {
+        cartas: cartas,
+        timestamp: Date.now()
+    };
+    
+    const datosString = JSON.stringify(datos);
+    const blob = new Blob([datosString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cartas-amor-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    showNotification('📤 Cartas exportadas', 'success');
+}
+
+function importarCartas(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const datos = JSON.parse(e.target.result);
+            const cartasImportadas = datos.cartas || [];
+
+            const cartasActuales = JSON.parse(localStorage.getItem('loveLetters')) || [];
+            const todasLasCartas = [...cartasActuales, ...cartasImportadas];
+            
+            const cartasUnicas = todasLasCartas.filter((carta, index, array) => 
+                index === array.findIndex(c => c.id === carta.id)
+            );
+            
+            localStorage.setItem('loveLetters', JSON.stringify(cartasUnicas));
+            lettersData = cartasUnicas;
+
+            renderLettersForDate(currentSelectedDate);
+            if (isAdmin) {
+                renderAdminLettersList();
+            }
+            
+            markContentUpdated();
+            
+            showNotification(`📥 ${cartasImportadas.length} cartas importadas`, 'success');
+            
+        } catch (error) {
+            showNotification('❌ Error importando cartas', 'error');
+            console.error('Error importando:', error);
+        }
+    };
+    reader.readAsText(file);
+
+    event.target.value = '';
+}
+
+function generarCodigoSincronizacion() {
+    const cartas = JSON.parse(localStorage.getItem('loveLetters')) || [];
+    const datos = {
+        cartas: cartas,
+        timestamp: Date.now()
+    };
+    
+    const datosString = JSON.stringify(datos);
+    const codigo = btoa(unescape(encodeURIComponent(datosString)));
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; max-height: 80%; overflow: auto;">
+            <h3>📋 Código de Sincronización</h3>
+            <p>Copia este código y pégalo en el otro dispositivo:</p>
+            <textarea id="codigoSincronizacion" style="width: 100%; height: 150px; margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: monospace;">${codigo}</textarea>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button onclick="copiarCodigo()" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">📋 Copiar</button>
+                <button onclick="this.parentElement.parentElement.parentElement.remove()" style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">❌ Cerrar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function pegarCodigoSincronizacion() {
+    const codigo = prompt('Pega el código de sincronización:');
+    if (!codigo) return;
+    
+    try {
+        const datosString = decodeURIComponent(escape(atob(codigo)));
+        const datos = JSON.parse(datosString);
+        const cartasImportadas = datos.cartas || [];
+        
+        // Reemplazar todas las cartas
+        localStorage.setItem('loveLetters', JSON.stringify(cartasImportadas));
+        lettersData = cartasImportadas;
+
+        renderLettersForDate(currentSelectedDate);
+        if (isAdmin) {
+            renderAdminLettersList();
+        }
+        
+        markContentUpdated();
+        
+        showNotification(`📥 ${cartasImportadas.length} cartas sincronizadas`, 'success');
+        
+    } catch (error) {
+        showNotification('❌ Código inválido', 'error');
+        console.error('Error con código:', error);
+    }
+}
+
+function copiarCodigo() {
+    const textarea = document.getElementById('codigoSincronizacion');
+    textarea.select();
+    document.execCommand('copy');
+    showNotification('📋 Código copiado', 'success');
+}
+
+function agregarBotonesSincronizacion() {
+    if (!isAdmin) return;
+    
+    if (document.getElementById('botonesSincronizacion')) return;
+    
+    const botonesHTML = `
+        <div id="botonesSincronizacion" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+            <h4 style="margin-bottom: 10px;">🔄 Sincronización entre Dispositivos</h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="exportarCartas()" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    📤 Exportar Cartas
+                </button>
+                <button onclick="document.getElementById('importarArchivo').click()" style="padding: 8px 15px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    📥 Importar Cartas
+                </button>
+                <button onclick="generarCodigoSincronizacion()" style="padding: 8px 15px; background: #ffc107; color: black; border: none; border-radius: 5px; cursor: pointer;">
+                    📋 Generar Código
+                </button>
+                <button onclick="pegarCodigoSincronizacion()" style="padding: 8px 15px; background: #6f42c1; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    📝 Pegar Código
+                </button>
+            </div>
+            <input type="file" id="importarArchivo" accept=".json" style="display: none;" onchange="importarCartas(event)">
+        </div>
+    `;
+
+    const editor = document.querySelector('.letter-editor');
+    if (editor) {
+        editor.insertAdjacentHTML('afterend', botonesHTML);
+    }
+}
+
+// Hacer funciones disponibles globalmente
+window.exportarCartas = exportarCartas;
+window.importarCartas = importarCartas;
+window.generarCodigoSincronizacion = generarCodigoSincronizacion;
+window.pegarCodigoSincronizacion = pegarCodigoSincronizacion;
+window.copiarCodigo = copiarCodigo;
+
 // Sistema de cartas
 let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [];
 
