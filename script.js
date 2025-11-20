@@ -529,6 +529,16 @@ function initializeSync() {
     console.log('🔄 Sistema de sincronización MEJORADO activado');
 }
 
+// Agregar este botón en tu admin panel o usar en consola
+function forceSync() {
+    console.log('🔄 Forzando sincronización manual...');
+    lastSyncTime = 0;
+    checkForUpdates();
+    showNotification('🔄 Sincronización forzada', 'success');
+}
+
+// Puedes llamar forceSync() desde la consola del navegador para probar
+
 function checkForAutoUpdate() {
     const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
     const lastChecked = parseInt(lastUpdateCheck);
