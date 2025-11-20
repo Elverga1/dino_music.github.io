@@ -310,28 +310,180 @@ const artistsData = [
     }
 ];
 
-// 🔄 SISTEMA DE SINCRONIZACIÓN CONTINUA
+// 🔄 SISTEMA DE SINCRONIZACIÓN REAL
 let syncCode = localStorage.getItem('loveLettersSyncCode') || null;
 let isSyncActive = localStorage.getItem('isSyncActive') === 'true';
-let lastSyncCheck = parseInt(localStorage.getItem('lastSyncCheck') || '0');
 
-// GENERAR CÓDIGO DE SINCRONIZACIÓN ÚNICO
-function generarCodigoSincronizacionPermanente() {
+// ALMACENAMIENTO COMPARTIDO entre dispositivos
+function getSharedStorage() {
+    return JSON.parse(localStorage.getItem('sharedLoveLetters') || '{}');
+}
+
+function setSharedStorage(data) {
+    localStorage.setItem('sharedLoveLetters', JSON.stringify(data));
+}
+
+// GENERAR CÓDIGO QUE REALMENTE FUNCIONE
+function generarCodigoSincronizacionReal() {
     if (!isAdmin) {
-        showNotification('❌ Solo el admin puede generar código de sincronización', 'error');
+        showNotification('❌ Solo el admin puede generar código', 'error');
         return;
     }
 
     // Crear código único
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 15);
-    syncCode = btoa(`${timestamp}-${random}-loveletters`);
+    const codigoUnico = `LL-${timestamp}-${random}`;
     
+    syncCode = codigoUnico;
     localStorage.setItem('loveLettersSyncCode', syncCode);
     localStorage.setItem('isSyncActive', 'true');
     isSyncActive = true;
     
-    // Mostrar código en modal
+    // Crear espacio compartido para este código
+    const sharedData = getSharedStorage();
+    sharedData[codigoUnico] = {
+        cartas: JSON.parse(localStorage.getItem('loveLetters') || '[]'),
+        ultimaActualizacion: timestamp,
+        adminDevice: true
+    };
+    setSharedStorage(sharedData);
+    
+    mostrarModalCodigo(codigoUnico);
+    showNotification('🔗 Código de sincronización creado', 'success');
+}
+
+// ACTIVAR SINCRONIZACIÓN REAL
+function activarSincronizacionReal() {
+    const codigoInput = prompt('Pega el código de sincronización (debe empezar con LL-):');
+    if (!codigoInput) return;
+    
+    const codigo = codigoInput.trim();
+    
+    if (!codigo.startsWith('LL-')) {
+        showNotification('❌ Código inválido. Debe empezar con "LL-"', 'error');
+        return;
+    }
+    
+    const sharedData = getSharedStorage();
+    if (!sharedData[codigo]) {
+        showNotification('❌ Código no encontrado. Pide al admin que genere uno nuevo', 'error');
+        return;
+    }
+    
+    syncCode = codigo;
+    localStorage.setItem('loveLettersSyncCode', syncCode);
+    localStorage.setItem('isSyncActive', 'true');
+    isSyncActive = true;
+    
+    // Sincronizar cartas inmediatamente
+    const cartasDelAdmin = sharedData[codigo].cartas || [];
+    sincronizarCartasReales(cartasDelAdmin);
+    
+    showNotification('🔗 Sincronización activada - Recibirás cartas automáticamente!', 'success');
+    
+    // Recargar botones para mostrar estado actualizado
+    const botones = document.getElementById('botonesSincronizacionReales');
+    if (botones) botones.remove();
+    setTimeout(agregarBotonesSincronizacionReales, 100);
+}
+
+// SINCRONIZACIÓN REAL DE CARTAS
+function sincronizarCartasReales(cartasNuevas) {
+    if (!cartasNuevas || cartasNuevas.length === 0) {
+        console.log('📭 No hay cartas nuevas para sincronizar');
+        return;
+    }
+    
+    const cartasLocales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
+    
+    // Encontrar cartas que no tenemos localmente
+    const idsLocales = new Set(cartasLocales.map(c => c.id));
+    const cartasParaAgregar = cartasNuevas.filter(carta => !idsLocales.has(carta.id));
+    
+    if (cartasParaAgregar.length > 0) {
+        const cartasActualizadas = [...cartasLocales, ...cartasParaAgregar];
+        
+        // Ordenar por timestamp (más reciente primero)
+        cartasActualizadas.sort((a, b) => b.timestamp - a.timestamp);
+        
+        localStorage.setItem('loveLetters', JSON.stringify(cartasActualizadas));
+        lettersData = cartasActualizadas;
+        
+        // Actualizar interfaz
+        renderLettersForDate(currentSelectedDate);
+        if (isAdmin) {
+            renderAdminLettersList();
+        }
+        
+        console.log(`✅ ${cartasParaAgregar.length} nuevas cartas sincronizadas`);
+        showNotification(`📬 ${cartasParaAgregar.length} nueva(s) carta(s) recibida(s)! 💖`, 'success');
+    } else {
+        console.log('📭 No hay cartas nuevas para agregar');
+    }
+}
+
+// ACTUALIZAR CARTAS EN ALMACENAMIENTO COMPARTIDO (cuando admin guarda)
+function actualizarCartasCompartidas() {
+    if (!isAdmin || !syncCode) return;
+    
+    const sharedData = getSharedStorage();
+    if (sharedData[syncCode]) {
+        sharedData[syncCode].cartas = JSON.parse(localStorage.getItem('loveLetters') || '[]');
+        sharedData[syncCode].ultimaActualizacion = Date.now();
+        setSharedStorage(sharedData);
+        
+        console.log('📡 Cartas actualizadas en almacenamiento compartido');
+    }
+}
+
+// VERIFICAR ACTUALIZACIONES PERIÓDICAMENTE
+function verificarActualizacionesReales() {
+    if (!isSyncActive || !syncCode) return;
+    
+    console.log('🔄 Verificando actualizaciones...');
+    
+    const sharedData = getSharedStorage();
+    const datosCodigo = sharedData[syncCode];
+    
+    if (!datosCodigo) {
+        console.log('❌ Código de sincronización no encontrado');
+        return;
+    }
+    
+    const cartasLocales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
+    const ultimaCartaLocal = cartasLocales.length > 0 ? 
+        Math.max(...cartasLocales.map(c => c.timestamp)) : 0;
+    
+    // Verificar si hay cartas más recientes
+    const cartasCompartidas = datosCodigo.cartas || [];
+    const cartasNuevas = cartasCompartidas.filter(carta => carta.timestamp > ultimaCartaLocal);
+    
+    if (cartasNuevas.length > 0) {
+        console.log(`📥 Encontradas ${cartasNuevas.length} cartas nuevas`);
+        sincronizarCartasReales(cartasNuevas);
+    } else {
+        console.log('📭 No hay cartas nuevas');
+    }
+}
+
+// MODIFICAR saveNewLetter PARA ACTUALIZAR ALMACENAMIENTO COMPARTIDO
+const originalSaveNewLetter = saveNewLetter;
+saveNewLetter = function() {
+    const result = originalSaveNewLetter();
+    
+    if (result !== false && isAdmin) {
+        // Actualizar en almacenamiento compartido después de guardar
+        setTimeout(() => {
+            actualizarCartasCompartidas();
+        }, 500);
+    }
+    
+    return result;
+};
+
+// MODAL MEJORADO PARA CÓDIGO
+function mostrarModalCodigo(codigo) {
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed;
@@ -339,43 +491,44 @@ function generarCodigoSincronizacionPermanente() {
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0,0,0,0.8);
+        background: rgba(0,0,0,0.9);
         display: flex;
         justify-content: center;
         align-items: center;
         z-index: 10000;
+        font-family: Arial, sans-serif;
     `;
     
     modal.innerHTML = `
-        <div style="background: white; padding: 25px; border-radius: 15px; max-width: 90%; max-height: 80%; overflow: auto; text-align: center;">
-            <h3 style="color: #28a745; margin-bottom: 15px;">🎉 ¡Código de Sincronización Creado!</h3>
-            <p style="margin-bottom: 15px; color: #666;">
-                <strong>Este código funcionará PARA SIEMPRE:</strong><br>
-                Comparte este código una vez y el dispositivo recibirá automáticamente todas las cartas nuevas.
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 20px; max-width: 500px; width: 90%; color: white; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+            <div style="font-size: 48px; margin-bottom: 20px;">🎯</div>
+            <h3 style="margin-bottom: 15px; font-size: 24px;">Código de Sincronización</h3>
+            <p style="margin-bottom: 20px; opacity: 0.9; line-height: 1.5;">
+                <strong>¡Comparte este código una vez!</strong><br>
+                El otro dispositivo recibirá todas tus cartas automáticamente.
             </p>
             
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 15px 0;">
-                <textarea id="codigoSincronizacionPermanente" 
-                    style="width: 100%; height: 120px; padding: 10px; border: 2px solid #28a745; border-radius: 8px; 
-                    font-family: monospace; font-size: 14px; resize: none;" 
-                    readonly>${syncCode}</textarea>
+            <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin: 20px 0; border: 2px solid rgba(255,255,255,0.3);">
+                <div style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold; letter-spacing: 1px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; word-break: break-all;">
+                    ${codigo}
+                </div>
             </div>
             
-            <p style="font-size: 12px; color: #888; margin-bottom: 20px;">
-                💡 El usuario solo necesita pegar este código UNA VEZ y recibirá todas las cartas nuevas automáticamente.
+            <p style="font-size: 14px; opacity: 0.8; margin-bottom: 25px;">
+                ⚡ <strong>Instrucciones:</strong><br>
+                1. Copia este código<br>
+                2. En el otro dispositivo, ve a "Cartas"<br>
+                3. Pega el código en "Activar Recepción"<br>
+                4. ¡Recibirá tus cartas automáticamente!
             </p>
             
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button onclick="copiarCodigoPermanente()" 
-                    style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                <button onclick="copiarCodigoReal('${codigo}')" 
+                    style="padding: 12px 25px; background: #00b894; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; transition: all 0.3s;">
                     📋 Copiar Código
                 </button>
-                <button onclick="detenerSincronizacion()" 
-                    style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                    🛑 Detener Sincronización
-                </button>
                 <button onclick="this.parentElement.parentElement.parentElement.remove()" 
-                    style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    style="padding: 12px 25px; background: #636e72; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; transition: all 0.3s;">
                     ✅ Entendido
                 </button>
             </div>
@@ -383,40 +536,107 @@ function generarCodigoSincronizacionPermanente() {
     `;
     
     document.body.appendChild(modal);
-    
-    showNotification('🔗 Sincronización continua activada', 'success');
-    console.log('✅ Código de sincronización permanente creado:', syncCode);
 }
 
-// ACTIVAR SINCRONIZACIÓN CON CÓDIGO
-function activarSincronizacionConCodigo() {
-    const codigo = prompt('Pega el código de sincronización permanente:');
-    if (!codigo) return;
+// COPIAR CÓDIGO MEJORADO
+function copiarCodigoReal(codigo) {
+    navigator.clipboard.writeText(codigo).then(() => {
+        showNotification('📋 Código copiado - ¡Compártelo ahora!', 'success');
+    }).catch(() => {
+        // Fallback para navegadores antiguos
+        const textarea = document.createElement('textarea');
+        textarea.value = codigo;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showNotification('📋 Código copiado - ¡Compártelo ahora!', 'success');
+    });
+}
+
+// BOTONES ACTUALIZADOS
+function agregarBotonesSincronizacionReales() {
+    if (document.getElementById('botonesSincronizacionReales')) return;
     
-    try {
-        if (codigo.length < 10) {
-            showNotification('❌ Código inválido', 'error');
-            return;
+    const estado = isSyncActive ? 
+        '🟢 SINCRONIZACIÓN ACTIVA' : '🔴 SINCRONIZACIÓN INACTIVA';
+    const colorEstado = isSyncActive ? '#00b894' : '#e17055';
+    
+    const botonesHTML = `
+        <div id="botonesSincronizacionReales" style="margin: 25px 0; padding: 25px; background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); border-radius: 20px; border: 3px solid #ffffff; box-shadow: 0 10px 30px rgba(116, 185, 255, 0.4); color: white;">
+            <h4 style="margin-bottom: 15px; text-align: center; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🔗 COMPARTIR CARTAS</h4>
+            
+            <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 15px; margin-bottom: 20px; text-align: center;">
+                <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${estado}</div>
+                <div style="font-size: 12px; opacity: 0.9;">
+                    ${isSyncActive ? 
+                    `Código activo: <strong>${syncCode}</strong>` : 
+                    'Activa la sincronización para compartir cartas'}
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                ${isAdmin ? `
+                <button onclick="generarCodigoSincronizacionReal()" 
+                    style="padding: 15px 10px; background: #fdcb6e; color: #2d3436; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(253, 203, 110, 0.3);">
+                    🎯 CREAR<br>CÓDIGO
+                </button>
+                <button onclick="exportarCartas()" 
+                    style="padding: 15px 10px; background: #00b894; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);">
+                    📤 EXPORTAR<br>CARTAS
+                </button>
+                ` : `
+                <div style="padding: 15px 10px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-size: 13px; text-align: center; display: flex; align-items: center; justify-content: center;">
+                    👑<br>Solo Admin
+                </div>
+                <div style="padding: 15px 10px; background: rgba(255,255,255,0.2); color: white; border-radius: 12px; font-size: 13px; text-align: center; display: flex; align-items: center; justify-content: center;">
+                    👑<br>Solo Admin
+                </div>
+                `}
+                
+                <button onclick="activarSincronizacionReal()" 
+                    style="padding: 15px 10px; background: #6c5ce7; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);">
+                    📱 ACTIVAR<br>RECEPCIÓN
+                </button>
+                ${isSyncActive ? `
+                <button onclick="detenerSincronizacionReal()" 
+                    style="padding: 15px 10px; background: #e17055; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(225, 112, 85, 0.3);">
+                    🛑 DETENER<br>RECEPCIÓN
+                </button>
+                ` : `
+                <button onclick="document.getElementById('importarArchivoReal').click()" 
+                    style="padding: 15px 10px; background: #a29bfe; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(162, 155, 254, 0.3);">
+                    📥 IMPORTAR<br>CARTAS
+                </button>
+                `}
+            </div>
+            
+            <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; text-align: center;">
+                <p style="margin: 0; font-size: 13px; line-height: 1.4;">
+                    <strong>💡 ¿Cómo funciona?</strong><br>
+                    ${isAdmin ? 
+                    '1. Crea código → 2. Compártelo → 3. Escribe cartas → 4. Se envían automáticamente' : 
+                    '1. Pide código al admin → 2. Activa recepción → 3. Recibe cartas automáticamente'}
+                </p>
+            </div>
+            
+            <input type="file" id="importarArchivoReal" accept=".json" style="display: none;" onchange="importarCartas(event)">
+        </div>
+    `;
+    
+    const lettersSection = document.getElementById('letters-section');
+    if (lettersSection) {
+        const dateSelector = lettersSection.querySelector('.date-selector');
+        if (dateSelector) {
+            dateSelector.insertAdjacentHTML('afterend', botonesHTML);
+        } else {
+            lettersSection.insertAdjacentHTML('afterbegin', botonesHTML);
         }
-        
-        syncCode = codigo;
-        localStorage.setItem('loveLettersSyncCode', syncCode);
-        localStorage.setItem('isSyncActive', 'true');
-        isSyncActive = true;
-        
-        // Sincronizar inmediatamente
-        sincronizarCartasAutomaticamente();
-        
-        showNotification('🔗 Sincronización continua activada - Recibirás cartas automáticamente!', 'success');
-        
-    } catch (error) {
-        showNotification('❌ Error activando sincronización', 'error');
-        console.error('Error:', error);
     }
 }
 
-// DETENER SINCRONIZACIÓN
-function detenerSincronizacion() {
+// DETENER SINCRONIZACIÓN MEJORADO
+function detenerSincronizacionReal() {
     syncCode = null;
     isSyncActive = false;
     localStorage.removeItem('loveLettersSyncCode');
@@ -424,85 +644,19 @@ function detenerSincronizacion() {
     
     showNotification('🔴 Sincronización detenida', 'success');
     
-    // Cerrar modal si está abierto
-    const modal = document.querySelector('div[style*="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);"]');
-    if (modal) {
-        modal.remove();
-    }
-}
-
-// COPIAR CÓDIGO PERMANENTE
-function copiarCodigoPermanente() {
-    const textarea = document.getElementById('codigoSincronizacionPermanente');
-    textarea.select();
-    document.execCommand('copy');
-    showNotification('📋 Código copiado - Compártelo con quien quieras!', 'success');
-}
-
-// SINCRONIZAR CARTAS AUTOMÁTICAMENTE
-function sincronizarCartasAutomaticamente() {
-    if (!isSyncActive) return;
-    
-    try {
-        const cartasLocales = JSON.parse(localStorage.getItem('loveLetters')) || [];
-        const ultimaCartaLocal = cartasLocales.length > 0 ? 
-            Math.max(...cartasLocales.map(c => c.timestamp)) : 0;
-        
-        // Simular sincronización (en sistema real sería con servidor)
-        const todasLasCartas = JSON.parse(localStorage.getItem('loveLetters')) || [];
-        const nuevasCartas = todasLasCartas.filter(carta => carta.timestamp > ultimaCartaLocal);
-        
-        if (nuevasCartas.length > 0) {
-            const cartasActualizadas = [...cartasLocales, ...nuevasCartas];
-            
-            // Eliminar duplicados
-            const cartasUnicas = cartasActualizadas.filter((carta, index, array) => 
-                index === array.findIndex(c => c.id === carta.id)
-            );
-            
-            localStorage.setItem('loveLetters', JSON.stringify(cartasUnicas));
-            lettersData = cartasUnicas;
-            
-            // Actualizar interfaz
-            renderLettersForDate(currentSelectedDate);
-            if (isAdmin) {
-                renderAdminLettersList();
-            }
-            
-            console.log(`✅ ${nuevasCartas.length} nuevas cartas sincronizadas automáticamente`);
-            
-            if (nuevasCartas.length > 0 && cartasLocales.length > 0) {
-                showNotification(`📬 ${nuevasCartas.length} nueva(s) carta(s) recibida(s) automáticamente! 💖`, 'success');
-            }
-        }
-        
-    } catch (error) {
-        console.error('❌ Error en sincronización automática:', error);
-    }
-}
-
-// VERIFICAR ACTUALIZACIONES AUTOMÁTICAMENTE
-function verificarActualizaciones() {
-    if (!isSyncActive || !syncCode) return;
-    
-    const ahora = Date.now();
-    const tiempoDesdeUltimaVerificacion = ahora - lastSyncCheck;
-    
-    if (tiempoDesdeUltimaVerificacion < 30000) return;
-    
-    console.log('🔄 Verificando actualizaciones...');
-    lastSyncCheck = ahora;
-    localStorage.setItem('lastSyncCheck', lastSyncCheck.toString());
-    
-    sincronizarCartasAutomaticamente();
+    // Recargar botones
+    const botones = document.getElementById('botonesSincronizacionReales');
+    if (botones) botones.remove();
+    setTimeout(agregarBotonesSincronizacionReales, 100);
 }
 
 // FUNCIONES DE EXPORTACIÓN/IMPORTACIÓN
 function exportarCartas() {
-    const cartas = JSON.parse(localStorage.getItem('loveLetters')) || [];
+    const cartas = JSON.parse(localStorage.getItem('loveLetters') || '[]');
     const datos = {
         cartas: cartas,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        total: cartas.length
     };
     
     const datosString = JSON.stringify(datos);
@@ -528,7 +682,7 @@ function importarCartas(event) {
             const datos = JSON.parse(e.target.result);
             const cartasImportadas = datos.cartas || [];
             
-            const cartasActuales = JSON.parse(localStorage.getItem('loveLetters')) || [];
+            const cartasActuales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
             const todasLasCartas = [...cartasActuales, ...cartasImportadas];
             
             const cartasUnicas = todasLasCartas.filter((carta, index, array) => 
@@ -554,100 +708,26 @@ function importarCartas(event) {
     event.target.value = '';
 }
 
-// BOTONES DE SINCRONIZACIÓN MEJORADOS
-function agregarBotonesSincronizacionGlobal() {
-    if (document.getElementById('botonesSincronizacionGlobal')) return;
+// INICIALIZAR SISTEMA REAL
+function inicializarSistemaReal() {
+    // Verificar actualizaciones cada 15 segundos
+    setInterval(verificarActualizacionesReales, 15000);
     
-    const estadoSincronizacion = isSyncActive ? 
-        '<span style="color: #28a745;">🟢 ACTIVADA</span>' : 
-        '<span style="color: #dc3545;">🔴 DESACTIVADA</span>';
-    
-    const botonesHTML = `
-        <div id="botonesSincronizacionGlobal" style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; border: 3px solid #4ecdc4; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
-            <h4 style="margin-bottom: 15px; color: white; text-align: center; font-size: 18px;">🔗 SINCRONIZACIÓN CONTINUA</h4>
-            <p style="color: white; text-align: center; margin-bottom: 15px; font-size: 14px;">
-                Estado: ${estadoSincronizacion}<br>
-                <small>Una vez activada, recibirás cartas automáticamente</small>
-            </p>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
-                ${isAdmin ? `
-                <button onclick="generarCodigoSincronizacionPermanente()" 
-                    style="padding: 12px 10px; background: #ffc107; color: black; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                    🔗 CREAR CÓDIGO<br>PERMANENTE
-                </button>
-                <button onclick="exportarCartas()" 
-                    style="padding: 12px 10px; background: #28a745; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                    📤 EXPORTAR<br>CARTAS
-                </button>
-                ` : `
-                <div style="padding: 12px 10px; background: rgba(255,255,255,0.2); color: white; border-radius: 10px; font-size: 13px; text-align: center;">
-                    👑 Solo admin<br>puede crear código
-                </div>
-                <div style="padding: 12px 10px; background: rgba(255,255,255,0.2); color: white; border-radius: 10px; font-size: 13px; text-align: center;">
-                    👑 Solo admin<br>puede exportar
-                </div>
-                `}
-                
-                <button onclick="activarSincronizacionConCodigo()" 
-                    style="padding: 12px 10px; background: #17a2b8; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                    📱 ACTIVAR<br>RECEPCIÓN
-                </button>
-                ${isSyncActive ? `
-                <button onclick="detenerSincronizacion()" 
-                    style="padding: 12px 10px; background: #dc3545; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                    🛑 DETENER<br>RECEPCIÓN
-                </button>
-                ` : `
-                <button onclick="document.getElementById('importarArchivoGlobal').click()" 
-                    style="padding: 12px 10px; background: #6f42c1; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                    📥 IMPORTAR<br>CARTAS
-                </button>
-                `}
-            </div>
-            
-            <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px; margin-top: 10px;">
-                <p style="color: white; font-size: 12px; margin: 0; text-align: center;">
-                    💡 <strong>¿Cómo funciona?</strong><br>
-                    ${isAdmin ? 
-                    '1. <strong>Crea código</strong> y compártelo → 2. <strong>Usuario activa recepción</strong> → 3. <strong>Recibe cartas automáticamente</strong>' : 
-                    '1. <strong>Pide código al admin</strong> → 2. <strong>Activa recepción</strong> → 3. <strong>Recibe cartas automáticamente</strong>'}
-                </p>
-            </div>
-            
-            <input type="file" id="importarArchivoGlobal" accept=".json" style="display: none;" onchange="importarCartas(event)">
-        </div>
-    `;
-    
-    const lettersSection = document.getElementById('letters-section');
-    if (lettersSection) {
-        const dateSelector = lettersSection.querySelector('.date-selector');
-        if (dateSelector) {
-            dateSelector.insertAdjacentHTML('afterend', botonesHTML);
-        } else {
-            lettersSection.insertAdjacentHTML('afterbegin', botonesHTML);
-        }
-    }
-}
-
-// INICIALIZAR SISTEMA DE SINCRONIZACIÓN
-function inicializarSistemaSincronizacion() {
-    setInterval(verificarActualizaciones, 30000);
-    
+    // Verificar cuando la página se hace visible
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
-            verificarActualizaciones();
+            setTimeout(verificarActualizacionesReales, 1000);
         }
     });
     
-    console.log('🔗 Sistema de sincronización continua inicializado');
+    console.log('🔗 Sistema de sincronización REAL inicializado');
 }
 
 // Hacer funciones disponibles globalmente
-window.generarCodigoSincronizacionPermanente = generarCodigoSincronizacionPermanente;
-window.activarSincronizacionConCodigo = activarSincronizacionConCodigo;
-window.detenerSincronizacion = detenerSincronizacion;
-window.copiarCodigoPermanente = copiarCodigoPermanente;
+window.generarCodigoSincronizacionReal = generarCodigoSincronizacionReal;
+window.activarSincronizacionReal = activarSincronizacionReal;
+window.detenerSincronizacionReal = detenerSincronizacionReal;
+window.copiarCodigoReal = copiarCodigoReal;
 window.exportarCartas = exportarCartas;
 window.importarCartas = importarCartas;
 
@@ -710,8 +790,8 @@ function initializeApp() {
         renderLettersForDate(currentSelectedDate);
         updateAdminInterface();
         
-        // 🎯 INICIALIZAR SISTEMA DE SINCRONIZACIÓN CONTINUA
-        inicializarSistemaSincronizacion();
+        // 🎯 INICIALIZAR SISTEMA REAL
+        inicializarSistemaReal();
         
         console.log('✅ Aplicación iniciada - Sincronización:', isSyncActive ? 'ACTIVA' : 'INACTIVA');
         
@@ -894,9 +974,8 @@ function updateAdminInterface() {
         adminLoginBtn.style.display = 'block';
     }
     
-    // 🎯 SIEMPRE agregar botones globales (para todos los usuarios)
     setTimeout(() => {
-        agregarBotonesSincronizacionGlobal();
+        agregarBotonesSincronizacionReales();
     }, 200);
 }
 
