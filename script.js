@@ -448,7 +448,50 @@ function changeDate(direction) {
 }
 
 // SISTEMA DE SINCRONIZACIÓN MEJORADO
+// SISTEMA DE SINCRONIZACIÓN MEJORADO
 let lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || '0');
+
+// AGREGAR ESTA FUNCIÓN PARA SINCRONIZACIÓN MANUAL
+function forceSync() {
+    console.log('🔄 Forzando sincronización manual...');
+    lastSyncTime = 0;
+    localStorage.setItem('lastSyncTime', '0');
+    checkForUpdates();
+    showNotification('🔄 Sincronización forzada', 'success');
+}
+
+// También puedes agregar un botón en tu interfaz admin
+function addSyncButton() {
+    if (isAdmin) {
+        // Buscar si ya existe el botón
+        if (!document.getElementById('forceSyncBtn')) {
+            const syncBtn = document.createElement('button');
+            syncBtn.id = 'forceSyncBtn';
+            syncBtn.innerHTML = '<i class="fas fa-sync"></i> Sincronizar';
+            syncBtn.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #17a2b8;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 20px;
+                cursor: pointer;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            `;
+            syncBtn.onclick = forceSync;
+            document.body.appendChild(syncBtn);
+        }
+    } else {
+        // Remover botón si no es admin
+        const existingBtn = document.getElementById('forceSyncBtn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+    }
+}
 
 function markContentUpdated() {
     const timestamp = Date.now();
@@ -512,6 +555,11 @@ function initializeSync() {
     // Inicializar lastSyncTime
     lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || Date.now().toString());
     
+    console.log('🔄 Iniciando sistema de sincronización...', {
+        lastSyncTime,
+        cartasActuales: lettersData.length
+    });
+    
     // Verificar cada 2 segundos (más frecuente)
     setInterval(checkForUpdates, 2000);
     
@@ -527,17 +575,11 @@ function initializeSync() {
     setTimeout(checkForUpdates, 1000);
     
     console.log('🔄 Sistema de sincronización MEJORADO activado');
+    
+    // Hacer forceSync disponible globalmente para la consola
+    window.forceSync = forceSync;
 }
 
-// Agregar este botón en tu admin panel o usar en consola
-function forceSync() {
-    console.log('🔄 Forzando sincronización manual...');
-    lastSyncTime = 0;
-    checkForUpdates();
-    showNotification('🔄 Sincronización forzada', 'success');
-}
-
-// Puedes llamar forceSync() desde la consola del navegador para probar
 
 function checkForAutoUpdate() {
     const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
@@ -955,10 +997,14 @@ function updateAdminInterface() {
         adminLoginBtn.style.display = 'none';
         statsNavBtn.style.display = 'flex';
         renderAdminLettersList();
+        addSyncButton(); // ← AGREGAR ESTA LÍNEA
     } else {
         adminPanel.style.display = 'none';
         adminLoginBtn.style.display = 'block';
         statsNavBtn.style.display = 'none';
+        // Remover botón de sync si existe
+        const syncBtn = document.getElementById('forceSyncBtn');
+        if (syncBtn) syncBtn.remove();
     }
 }
 
