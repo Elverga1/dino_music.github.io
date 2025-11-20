@@ -6,14 +6,11 @@ const ADMIN_CONFIG = {
 // ✅ FECHA CONFIABLE
 function getCurrentLocalDate() {
     const now = new Date();
-    
-    // Método directo y confiable
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     
     const fecha = `${year}-${month}-${day}`;
-    
     console.log('📅 Fecha actual:', fecha);
     
     return fecha;
@@ -313,6 +310,7 @@ const artistsData = [
     }
 ];
 
+// 🔄 SISTEMA DE SINCRONIZACIÓN MANUAL
 function exportarCartas() {
     const cartas = JSON.parse(localStorage.getItem('loveLetters')) || [];
     const datos = {
@@ -342,23 +340,24 @@ function importarCartas(event) {
         try {
             const datos = JSON.parse(e.target.result);
             const cartasImportadas = datos.cartas || [];
-
+            
+            // Combinar con cartas existentes
             const cartasActuales = JSON.parse(localStorage.getItem('loveLetters')) || [];
             const todasLasCartas = [...cartasActuales, ...cartasImportadas];
             
+            // Eliminar duplicados
             const cartasUnicas = todasLasCartas.filter((carta, index, array) => 
                 index === array.findIndex(c => c.id === carta.id)
             );
             
             localStorage.setItem('loveLetters', JSON.stringify(cartasUnicas));
             lettersData = cartasUnicas;
-
+            
+            // Actualizar interfaces
             renderLettersForDate(currentSelectedDate);
             if (isAdmin) {
                 renderAdminLettersList();
             }
-            
-            markContentUpdated();
             
             showNotification(`📥 ${cartasImportadas.length} cartas importadas`, 'success');
             
@@ -368,7 +367,8 @@ function importarCartas(event) {
         }
     };
     reader.readAsText(file);
-
+    
+    // Limpiar input
     event.target.value = '';
 }
 
@@ -381,7 +381,8 @@ function generarCodigoSincronizacion() {
     
     const datosString = JSON.stringify(datos);
     const codigo = btoa(unescape(encodeURIComponent(datosString)));
-
+    
+    // Mostrar código en un modal
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed;
@@ -423,13 +424,12 @@ function pegarCodigoSincronizacion() {
         // Reemplazar todas las cartas
         localStorage.setItem('loveLetters', JSON.stringify(cartasImportadas));
         lettersData = cartasImportadas;
-
+        
+        // Actualizar interfaces
         renderLettersForDate(currentSelectedDate);
         if (isAdmin) {
             renderAdminLettersList();
         }
-        
-        markContentUpdated();
         
         showNotification(`📥 ${cartasImportadas.length} cartas sincronizadas`, 'success');
         
@@ -449,6 +449,7 @@ function copiarCodigo() {
 function agregarBotonesSincronizacion() {
     if (!isAdmin) return;
     
+    // Buscar si ya existen los botones
     if (document.getElementById('botonesSincronizacion')) return;
     
     const botonesHTML = `
@@ -471,7 +472,8 @@ function agregarBotonesSincronizacion() {
             <input type="file" id="importarArchivo" accept=".json" style="display: none;" onchange="importarCartas(event)">
         </div>
     `;
-
+    
+    // Insertar después del editor de cartas
     const editor = document.querySelector('.letter-editor');
     if (editor) {
         editor.insertAdjacentHTML('afterend', botonesHTML);
@@ -487,74 +489,6 @@ window.copiarCodigo = copiarCodigo;
 
 // Sistema de cartas
 let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [];
-
-// SISTEMA DE SINCRONIZACIÓN
-let lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || '0');
-
-function markContentUpdated() {
-    const timestamp = Date.now();
-    localStorage.setItem('lastContentUpdate', timestamp.toString());
-    console.log('⏰ Marcando contenido actualizado:', timestamp);
-}
-
-function checkForUpdates() {
-    const lastUpdate = parseInt(localStorage.getItem('lastContentUpdate') || '0');
-    
-    if (lastUpdate > lastSyncTime) {
-        console.log('🔄 Cambios detectados, sincronizando...');
-        syncContent();
-        lastSyncTime = lastUpdate;
-        localStorage.setItem('lastSyncTime', lastSyncTime.toString());
-    }
-}
-
-function syncContent() {
-    try {
-        const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
-        const currentLettersJSON = JSON.stringify(lettersData);
-        const updatedLettersJSON = JSON.stringify(updatedLetters);
-        
-        if (currentLettersJSON !== updatedLettersJSON) {
-            lettersData = updatedLetters;
-            
-            renderLettersForDate(currentSelectedDate);
-            if (isAdmin) {
-                renderAdminLettersList();
-            }
-            
-            console.log('✅ Contenido sincronizado correctamente');
-            showNotification('📱 Contenido actualizado', 'success');
-        }
-    } catch (error) {
-        console.error('❌ Error en sincronización:', error);
-    }
-}
-
-function initializeSync() {
-    lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || Date.now().toString());
-    
-    console.log('🔄 Iniciando sistema de sincronización...');
-    
-    setInterval(checkForUpdates, 3000);
-    
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            checkForUpdates();
-        }
-    });
-    
-    setTimeout(checkForUpdates, 1500);
-}
-
-function forceSync() {
-    console.log('🔄 Forzando sincronización manual...');
-    lastSyncTime = 0;
-    localStorage.setItem('lastSyncTime', '0');
-    checkForUpdates();
-    showNotification('🔄 Sincronización forzada', 'success');
-}
-
-window.forceSync = forceSync;
 
 // Estado de la aplicación
 let currentSearch = '';
@@ -611,7 +545,6 @@ function initializeApp() {
         updateDateDisplay();
         renderLettersForDate(currentSelectedDate);
         updateAdminInterface();
-        initializeSync();
         
         console.log('✅ Aplicación iniciada - Fecha:', currentSelectedDate);
         
@@ -694,9 +627,6 @@ function saveNewLetter() {
     lettersData.push(newLetter);
     localStorage.setItem('loveLetters', JSON.stringify(lettersData));
     
-    markContentUpdated();
-    lastSyncTime = 0;
-    
     if (date === currentSelectedDate) {
         renderLettersForDate(currentSelectedDate);
     }
@@ -705,7 +635,7 @@ function saveNewLetter() {
     }
     
     clearEditorForm();
-    showNotification('💖 Carta guardada - Sincronizando...');
+    showNotification('💖 Carta guardada');
     
     return true;
 }
@@ -721,15 +651,12 @@ function deleteLetter(letterId) {
         lettersData = lettersData.filter(letter => letter.id !== letterId);
         localStorage.setItem('loveLetters', JSON.stringify(lettersData));
         
-        markContentUpdated();
-        lastSyncTime = 0;
-        
         if (letterToDelete && letterToDelete.date === currentSelectedDate) {
             renderLettersForDate(currentSelectedDate);
         }
         renderAdminLettersList();
         
-        showNotification('🗑️ Carta eliminada - Sincronizando...');
+        showNotification('🗑️ Carta eliminada');
     }
 }
 
@@ -792,6 +719,7 @@ function updateAdminInterface() {
         adminPanel.style.display = 'block';
         adminLoginBtn.style.display = 'none';
         renderAdminLettersList();
+        agregarBotonesSincronizacion(); // ← AGREGAR BOTONES DE SINCRONIZACIÓN
     } else {
         adminPanel.style.display = 'none';
         adminLoginBtn.style.display = 'block';
