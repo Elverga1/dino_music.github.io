@@ -3,50 +3,52 @@ const ADMIN_CONFIG = {
     sessionTimeout: 60 * 60 * 1000
 }
 
+// ✅ FECHA CONFIABLE
 function getCurrentLocalDate() {
     const now = new Date();
     
-    // Obtener fecha LOCAL correctamente (sin problemas de zona horaria)
-    const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
-    const dateString = localDate.toISOString().split('T')[0];
+    // Método directo y confiable
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
     
-    console.log('📅 Fecha corregida:', {
-        'Hora local': now.toString(),
-        'Fecha ISO': dateString,
-        'Día del mes': now.getDate(),
-        'Día de la semana': now.getDay()
-    });
+    const fecha = `${year}-${month}-${day}`;
     
-    return dateString;
+    console.log('📅 Fecha actual:', fecha);
+    
+    return fecha;
 }
 
-// FUNCIÓN SIMPLE para formatear fechas
 function formatDate(dateString) {
     if (!dateString) dateString = getCurrentLocalDate();
     
-    // Crear fecha en zona horaria local
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    
-    const options = { 
-        weekday: 'long',
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric'
-    };
-    
-    return date.toLocaleDateString('es-ES', options);
+    try {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day, 12, 0, 0);
+        
+        const options = { 
+            weekday: 'long',
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric'
+        };
+        
+        return date.toLocaleDateString('es-ES', options);
+    } catch (error) {
+        console.error('❌ Error formateando fecha:', error);
+        return dateString;
+    }
 }
 
-// FORZAR fecha actual al cargar
+// Fecha actual al cargar
 let currentSelectedDate = getCurrentLocalDate();
 
-// BASE DE DATOS DE ARTISTAS - FÁCIL DE EDITAR
+// BASE DE DATOS DE ARTISTAS
 const artistsData = [
     {
         id: 1,
         name: "Duki",
-        logo: "images/duki-logo.jpg", // Ruta de tu imagen
+        logo: "images/duki-logo.jpg",
         fallbackEmoji: "😈",
         songs: [
             {
@@ -310,22 +312,77 @@ const artistsData = [
         ]
     }
 ];
-//Sistema de cartas
-let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [
-];
 
-// SISTEMA DE ESTADÍSTICAS
-let visitsData = JSON.parse(localStorage.getItem('pageVisits')) || [];
+// Sistema de cartas
+let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [];
 
-// SISTEMA DE NOTIFICACIONES
-let lastContentUpdate = JSON.parse(localStorage.getItem('lastContentUpdate')) || {
-    letters: 0,
-    songs: 0,
-    lastCheck: Date.now()
-};
+// SISTEMA DE SINCRONIZACIÓN
+let lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || '0');
 
-let lastUpdateCheck = localStorage.getItem('lastUpdateCheck') || Date.now();
-let autoUpdateInterval = null;
+function markContentUpdated() {
+    const timestamp = Date.now();
+    localStorage.setItem('lastContentUpdate', timestamp.toString());
+    console.log('⏰ Marcando contenido actualizado:', timestamp);
+}
+
+function checkForUpdates() {
+    const lastUpdate = parseInt(localStorage.getItem('lastContentUpdate') || '0');
+    
+    if (lastUpdate > lastSyncTime) {
+        console.log('🔄 Cambios detectados, sincronizando...');
+        syncContent();
+        lastSyncTime = lastUpdate;
+        localStorage.setItem('lastSyncTime', lastSyncTime.toString());
+    }
+}
+
+function syncContent() {
+    try {
+        const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
+        const currentLettersJSON = JSON.stringify(lettersData);
+        const updatedLettersJSON = JSON.stringify(updatedLetters);
+        
+        if (currentLettersJSON !== updatedLettersJSON) {
+            lettersData = updatedLetters;
+            
+            renderLettersForDate(currentSelectedDate);
+            if (isAdmin) {
+                renderAdminLettersList();
+            }
+            
+            console.log('✅ Contenido sincronizado correctamente');
+            showNotification('📱 Contenido actualizado', 'success');
+        }
+    } catch (error) {
+        console.error('❌ Error en sincronización:', error);
+    }
+}
+
+function initializeSync() {
+    lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || Date.now().toString());
+    
+    console.log('🔄 Iniciando sistema de sincronización...');
+    
+    setInterval(checkForUpdates, 3000);
+    
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            checkForUpdates();
+        }
+    });
+    
+    setTimeout(checkForUpdates, 1500);
+}
+
+function forceSync() {
+    console.log('🔄 Forzando sincronización manual...');
+    lastSyncTime = 0;
+    localStorage.setItem('lastSyncTime', '0');
+    checkForUpdates();
+    showNotification('🔄 Sincronización forzada', 'success');
+}
+
+window.forceSync = forceSync;
 
 // Estado de la aplicación
 let currentSearch = '';
@@ -342,8 +399,6 @@ const artistCount = document.getElementById('artistCount');
 const songCount = document.getElementById('songCount');
 const emptyState = document.getElementById('emptyState');
 const loading = document.getElementById('loading');
-
-// Elementos del sistema de cartas
 const currentDateDisplay = document.getElementById('currentDateDisplay');
 const selectedDateSpan = document.getElementById('selectedDate');
 const prevDateBtn = document.getElementById('prevDate');
@@ -361,13 +416,10 @@ const letterContent = document.getElementById('letterContent');
 const saveLetter = document.getElementById('saveLetter');
 const clearEditor = document.getElementById('clearEditor');
 const adminLettersList = document.getElementById('adminLettersList');
-const statsNavBtn = document.getElementById('statsNavBtn');
-
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('💌 Iniciando aplicación con sistema completo');
-    registerVisit(); // Registrar visita actual
+    console.log('💌 Iniciando aplicación');
     checkExistingSession();
     initializeApp();
 });
@@ -375,40 +427,33 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeApp() {
     setTimeout(() => {
         loading.style.display = 'none';
+        
+        currentSelectedDate = getCurrentLocalDate();
+        if (letterDateInput) {
+            letterDateInput.value = currentSelectedDate;
+        }
+        
         renderArtists();
         setupEventListeners();
         updateStats();
-        updateDateDisplay(); // ← FORZAR ACTUALIZACIÓN DE FECHA
+        updateDateDisplay();
         renderLettersForDate(currentSelectedDate);
         updateAdminInterface();
-        initializeSync(); // ← ACTIVAR SINCRONIZACIÓN
-        console.log('✅ Aplicación iniciada correctamente');
+        initializeSync();
         
-        // DEBUG: Mostrar fecha actual
-        console.log('🐛 Fecha actual forzada:', getCurrentLocalDate());
+        console.log('✅ Aplicación iniciada - Fecha:', currentSelectedDate);
+        
     }, 800);
 }
 
 function updateDateDisplay() {
-    console.log('🔄 Actualizando display de fecha...');
-    
     const selectedDateSpan = document.getElementById('selectedDate');
     const currentDateDisplay = document.getElementById('currentDateDisplay');
     
-    if (!selectedDateSpan || !currentDateDisplay) {
-        console.error('❌ Elementos de fecha no encontrados');
-        return;
-    }
+    if (!selectedDateSpan || !currentDateDisplay) return;
     
     const today = getCurrentLocalDate();
     
-    console.log('📅 DEBUG FECHAS:');
-    console.log(' - Hoy:', today);
-    console.log(' - Seleccionada:', currentSelectedDate);
-    console.log(' - Hoy formateado:', formatDate(today));
-    console.log(' - Seleccionada formateado:', formatDate(currentSelectedDate));
-    
-    // Actualizar el span de fecha seleccionada
     if (currentSelectedDate === today) {
         selectedDateSpan.textContent = 'Hoy';
         if (nextDateBtn) nextDateBtn.disabled = true;
@@ -417,10 +462,8 @@ function updateDateDisplay() {
         if (nextDateBtn) nextDateBtn.disabled = false;
     }
     
-    // Actualizar el display principal
     currentDateDisplay.textContent = `Cartas del ${formatDate(currentSelectedDate)}`;
     
-    // Actualizar botón anterior
     if (prevDateBtn) {
         const firstLetterDate = lettersData.length > 0 ? 
             lettersData.reduce((min, letter) => letter.date < min ? letter.date : min, lettersData[0].date) : 
@@ -430,11 +473,16 @@ function updateDateDisplay() {
 }
 
 function changeDate(direction) {
-    const currentDate = new Date(currentSelectedDate + 'T00:00:00');
+    const currentDate = new Date(currentSelectedDate + 'T12:00:00');
     
     if (direction === 'prev') {
         currentDate.setDate(currentDate.getDate() - 1);
     } else {
+        const today = new Date(getCurrentLocalDate() + 'T12:00:00');
+        if (currentDate >= today) {
+            showNotification('❌ No puedes viajar al futuro!', 'error');
+            return;
+        }
         currentDate.setDate(currentDate.getDate() + 1);
     }
     
@@ -443,378 +491,74 @@ function changeDate(direction) {
     const day = String(currentDate.getDate()).padStart(2, '0');
     
     currentSelectedDate = `${year}-${month}-${day}`;
+    
     updateDateDisplay();
     renderLettersForDate(currentSelectedDate);
 }
 
-// SISTEMA DE SINCRONIZACIÓN MEJORADO
-// SISTEMA DE SINCRONIZACIÓN MEJORADO
-let lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || '0');
+function saveNewLetter() {
+    if (!isAdmin) {
+        showNotification('❌ No tienes permisos', 'error');
+        return false;
+    }
 
-// AGREGAR ESTA FUNCIÓN PARA SINCRONIZACIÓN MANUAL
-function forceSync() {
-    console.log('🔄 Forzando sincronización manual...');
+    const title = letterTitle?.value.trim();
+    const content = letterContent?.value.trim();
+    const date = letterDateInput?.value || getCurrentLocalDate();
+
+    if (!title || !content) {
+        showNotification('❌ Escribe título y contenido', 'error');
+        return false;
+    }
+
+    const newLetter = {
+        id: Date.now(),
+        title: title,
+        content: content,
+        date: date,
+        timestamp: new Date().getTime()
+    };
+
+    lettersData.push(newLetter);
+    localStorage.setItem('loveLetters', JSON.stringify(lettersData));
+    
+    markContentUpdated();
     lastSyncTime = 0;
-    localStorage.setItem('lastSyncTime', '0');
-    checkForUpdates();
-    showNotification('🔄 Sincronización forzada', 'success');
-}
-
-// También puedes agregar un botón en tu interfaz admin
-function addSyncButton() {
-    if (isAdmin) {
-        // Buscar si ya existe el botón
-        if (!document.getElementById('forceSyncBtn')) {
-            const syncBtn = document.createElement('button');
-            syncBtn.id = 'forceSyncBtn';
-            syncBtn.innerHTML = '<i class="fas fa-sync"></i> Sincronizar';
-            syncBtn.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: #17a2b8;
-                color: white;
-                border: none;
-                padding: 10px 15px;
-                border-radius: 20px;
-                cursor: pointer;
-                z-index: 1000;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            `;
-            syncBtn.onclick = forceSync;
-            document.body.appendChild(syncBtn);
-        }
-    } else {
-        // Remover botón si no es admin
-        const existingBtn = document.getElementById('forceSyncBtn');
-        if (existingBtn) {
-            existingBtn.remove();
-        }
-    }
-}
-
-function markContentUpdated() {
-    const timestamp = Date.now();
-    localStorage.setItem('lastContentUpdate', timestamp.toString());
-    console.log('⏰ Marcando contenido actualizado:', timestamp);
     
-    // También guardar en un campo específico para cartas
-    localStorage.setItem('lettersLastUpdate', timestamp.toString());
-}
-
-function checkForUpdates() {
-    const lastUpdate = parseInt(localStorage.getItem('lastContentUpdate') || '0');
-    const lettersUpdate = parseInt(localStorage.getItem('lettersLastUpdate') || '0');
-    
-    console.log('🔄 Verificando actualizaciones...', {
-        lastUpdate,
-        lastSyncTime,
-        lettersUpdate
-    });
-    
-    if (lastUpdate > lastSyncTime || lettersUpdate > lastSyncTime) {
-        console.log('🔄 Cambios detectados, sincronizando...');
-        syncContent();
-        lastSyncTime = Math.max(lastUpdate, lettersUpdate, Date.now());
-        localStorage.setItem('lastSyncTime', lastSyncTime.toString());
-    }
-}
-
-function syncContent() {
-    try {
-        const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
-        const currentLettersJSON = JSON.stringify(lettersData);
-        const updatedLettersJSON = JSON.stringify(updatedLetters);
-        
-        console.log('📊 Comparando cartas:', {
-            actual: lettersData.length,
-            almacenadas: updatedLetters.length,
-            iguales: currentLettersJSON === updatedLettersJSON
-        });
-        
-        if (currentLettersJSON !== updatedLettersJSON) {
-            lettersData = updatedLetters;
-            renderLettersForDate(currentSelectedDate);
-            
-            if (isAdmin) {
-                renderAdminLettersList();
-            }
-            
-            console.log('✅ Contenido sincronizado correctamente');
-            showNotification('📱 Contenido actualizado', 'success');
-            
-            // Forzar actualización de estadísticas
-            updateNotificationBadges();
-        }
-    } catch (error) {
-        console.error('❌ Error en sincronización:', error);
-    }
-}
-
-function initializeSync() {
-    // Inicializar lastSyncTime
-    lastSyncTime = parseInt(localStorage.getItem('lastSyncTime') || Date.now().toString());
-    
-    console.log('🔄 Iniciando sistema de sincronización...', {
-        lastSyncTime,
-        cartasActuales: lettersData.length
-    });
-    
-    // Verificar cada 2 segundos (más frecuente)
-    setInterval(checkForUpdates, 2000);
-    
-    // También verificar cuando la página se activa
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            console.log('👀 Página visible, verificando actualizaciones...');
-            checkForUpdates();
-        }
-    });
-    
-    // Verificar inmediatamente al cargar
-    setTimeout(checkForUpdates, 1000);
-    
-    console.log('🔄 Sistema de sincronización MEJORADO activado');
-    
-    // Hacer forceSync disponible globalmente para la consola
-    window.forceSync = forceSync;
-}
-
-
-function checkForAutoUpdate() {
-    const currentTimestamp = localStorage.getItem('loveLettersTimestamp') || 0;
-    const lastChecked = parseInt(lastUpdateCheck);
-    
-    if (currentTimestamp > lastChecked) {
-        console.log('🔄 Cambios detectados, actualizando...');
-        performAutoUpdate();
-    }
-    
-    lastUpdateCheck = Date.now();
-    localStorage.setItem('lastUpdateCheck', lastUpdateCheck);
-}
-
-
-function performAutoUpdate() {
-    const updatedLetters = JSON.parse(localStorage.getItem('loveLetters')) || [];
-    
-    if (JSON.stringify(updatedLetters) !== JSON.stringify(lettersData)) {
-        lettersData = updatedLetters;
+    if (date === currentSelectedDate) {
         renderLettersForDate(currentSelectedDate);
-        if (isAdmin) {
-            renderAdminLettersList();
-        }
-        console.log('✅ Cartas actualizadas automáticamente');
     }
-}
-
-function updateLettersTimestamp() {
-    const timestamp = Date.now();
-    localStorage.setItem('loveLettersTimestamp', timestamp);
-}
-
-function initializeAutoUpdate() {
-    autoUpdateInterval = setInterval(checkForAutoUpdate, 5000);
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) checkForAutoUpdate();
-    });
-}
-
-// SISTEMA DE NOTIFICACIONES
-function checkForNewContent() {
-    const currentLetters = lettersData.length;
-    const currentSongs = artistsData.reduce((total, artist) => total + artist.songs.length, 0);
-    
-    let hasNewContent = false;
-    let notificationMessage = '';
-    
-    // Verificar nuevas cartas
-    if (currentLetters > lastContentUpdate.letters) {
-        hasNewContent = true;
-        const newLettersCount = currentLetters - lastContentUpdate.letters;
-        notificationMessage += `📝 ${newLettersCount} nueva${newLettersCount > 1 ? 's' : ''} carta${newLettersCount > 1 ? 's' : ''}`;
+    if (isAdmin) {
+        renderAdminLettersList();
     }
     
-    // Verificar nuevas canciones
-    if (currentSongs > lastContentUpdate.songs) {
-        hasNewContent = true;
-        if (notificationMessage) notificationMessage += ' y ';
-        const newSongsCount = currentSongs - lastContentUpdate.songs;
-        notificationMessage += `🎵 ${newSongsCount} nueva${newSongsCount > 1 ? 's' : ''} canción${newSongsCount > 1 ? 'es' : ''}`;
-    }
+    clearEditorForm();
+    showNotification('💖 Carta guardada - Sincronizando...');
     
-    if (hasNewContent) {
-        showNewContentNotification(notificationMessage);
-        
-        // Actualizar el último estado conocido
-        lastContentUpdate.letters = currentLetters;
-        lastContentUpdate.songs = currentSongs;
-        lastContentUpdate.lastCheck = Date.now();
-        localStorage.setItem('lastContentUpdate', JSON.stringify(lastContentUpdate));
-    }
-    
-    // Actualizar badge en la navegación
-    updateNotificationBadges();
+    return true;
 }
 
-// Sobrescribir saveNewLetter para incluir timestamp
-const originalSaveNewLetter = saveNewLetter;
-saveNewLetter = function() {
-    const result = originalSaveNewLetter();
-    if (result !== false) { // Si se guardó correctamente
-        updateLettersTimestamp();
-    }
-    return result;
-};
-
-// Detener auto-actualización cuando sea necesario
-function stopAutoUpdate() {
-    if (autoUpdateInterval) {
-        clearInterval(autoUpdateInterval);
-        autoUpdateInterval = null;
-    }
-}
-
-// Agregar al initializeApp
-const originalInitializeApp = initializeApp;
-initializeApp = function() {
-    originalInitializeApp();
-    initializeAutoUpdate();
-};
-
-// Limpiar al cerrar la página (opcional)
-window.addEventListener('beforeunload', stopAutoUpdate);
-
-function showNewContentNotification(message) {
-    // Crear notificación especial para nuevo contenido
-    const notification = document.createElement('div');
-    notification.className = 'new-content-notification';
-    notification.innerHTML = `
-        <div class="notification-content">
-            <div class="notification-icon">
-                <i class="fas fa-gift"></i>
-            </div>
-            <div class="notification-text">
-                <strong>¡Nuevo contenido!</strong>
-                <p>${message}</p>
-            </div>
-            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Auto-eliminar después de 8 segundos
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 8000);
-    
-    // También mostrar notificación del sistema si está permitido
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('🎵 Nuevo contenido disponible', {
-            body: message,
-            icon: '/favicon.ico',
-            tag: 'new-content'
-        });
-    }
-}
-
-function updateNotificationBadges() {
-    const currentLetters = lettersData.length;
-    const currentSongs = artistsData.reduce((total, artist) => total + artist.songs.length, 0);
-    
-    const newLetters = Math.max(0, currentLetters - lastContentUpdate.letters);
-    const newSongs = Math.max(0, currentSongs - lastContentUpdate.songs);
-    
-    // Actualizar badges en los botones de navegación
-    updateNavBadge('letters', newLetters);
-    updateNavBadge('music', newSongs);
-}
-
-function updateNavBadge(section, count) {
-    if (count === 0) {
-        // Remover badge si no hay notificaciones
-        const existingBadge = document.querySelector(`[data-section="${section}"] .nav-badge`);
-        if (existingBadge) {
-            existingBadge.remove();
-        }
+function deleteLetter(letterId) {
+    if (!isAdmin) {
+        showNotification('❌ No tienes permisos', 'error');
         return;
     }
-    
-    const navButton = document.querySelector(`[data-section="${section}"]`);
-    let badge = navButton.querySelector('.nav-badge');
-    
-    if (!badge) {
-        badge = document.createElement('span');
-        badge.className = 'nav-badge';
-        navButton.appendChild(badge);
-    }
-    
-    badge.textContent = count > 99 ? '99+' : count;
-    badge.style.display = 'flex';
-}
 
-function requestNotificationPermission() {
-    if ('Notification' in window) {
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                console.log('🔔 Permiso de notificaciones concedido');
-                // Mostrar notificación de bienvenida
-                new Notification('🎵 Canciones de dino❤️', {
-                    body: '¡Te avisaremos cuando haya nuevo contenido!',
-                    icon: '/favicon.ico'
-                });
-            }
-        });
-    }
-}
-
-function setupRealTimeUpdates() {
-    // Verificar nuevo contenido cada 30 segundos
-    setInterval(checkForNewContent, 30000);
-    
-    // También verificar cuando el usuario vuelve a la pestaña
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            checkForNewContent();
+    if (confirm('¿Estás seguro de que quieres eliminar esta carta?')) {
+        const letterToDelete = lettersData.find(letter => letter.id === letterId);
+        lettersData = lettersData.filter(letter => letter.id !== letterId);
+        localStorage.setItem('loveLetters', JSON.stringify(lettersData));
+        
+        markContentUpdated();
+        lastSyncTime = 0;
+        
+        if (letterToDelete && letterToDelete.date === currentSelectedDate) {
+            renderLettersForDate(currentSelectedDate);
         }
-    });
-    
-    // Verificar cuando se carga la página
-    window.addEventListener('load', checkForNewContent);
-}
-
-// REGISTRO DE VISITAS
-function registerVisit() {
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const time = now.toLocaleTimeString('es-ES', { 
-        hour: '2-digit', 
-        minute: '2-digit'
-    });
-
-    // Buscar si ya hay registro para hoy
-    const todayVisit = visitsData.find(visit => visit.date === today);
-    
-    if (todayVisit) {
-        // Incrementar contador del día
-        todayVisit.visits++;
-        todayVisit.lastVisit = time;
-    } else {
-        // Nuevo registro para el día
-        visitsData.push({
-            date: today,
-            visits: 1,
-            lastVisit: time
-        });
+        renderAdminLettersList();
+        
+        showNotification('🗑️ Carta eliminada - Sincronizando...');
     }
-
-    // Guardar en localStorage
-    localStorage.setItem('pageVisits', JSON.stringify(visitsData));
 }
 
 function renderLettersForDate(date) {
@@ -845,90 +589,211 @@ function renderLettersForDate(date) {
     `).join('');
 }
 
-// SISTEMA DE ESTADÍSTICAS
-function renderStatistics() {
-    renderStatsSummary();
-    renderVisitsChart();
-    renderVisitsTable();
-}
-
-function renderStatsSummary() {
-    const totalVisits = visitsData.reduce((sum, day) => sum + day.visits, 0);
-    const uniqueDays = visitsData.length;
-    const lastVisit = visitsData.length > 0 ? 
-        formatDate(visitsData[visitsData.length - 1].date) + ' ' + visitsData[visitsData.length - 1].lastVisit : 
-        'Nunca';
-
-    document.getElementById('totalVisits').textContent = totalVisits;
-    document.getElementById('uniqueDays').textContent = uniqueDays;
-    document.getElementById('lastVisit').textContent = lastVisit;
-}
-
-function renderVisitsChart() {
-    const chartContainer = document.getElementById('visitsChart');
-    const last7Days = getLast7Days();
+function renderAdminLettersList() {
+    if (!adminLettersList) return;
     
-    if (visitsData.length === 0) {
-        chartContainer.innerHTML = '<div class="no-visits">No hay datos de visitas aún</div>';
+    if (lettersData.length === 0) {
+        adminLettersList.innerHTML = '<p style="text-align: center; color: #666;">No hay cartas aún</p>';
         return;
     }
 
-    chartContainer.innerHTML = last7Days.map(day => {
-        const visitData = visitsData.find(v => v.date === day.date);
-        const visits = visitData ? visitData.visits : 0;
-        const maxVisits = Math.max(...last7Days.map(d => {
-            const vd = visitsData.find(v => v.date === d.date);
-            return vd ? vd.visits : 0;
-        }));
-        
-        const height = maxVisits > 0 ? (visits / maxVisits) * 100 : 10;
-        
-        return `
-            <div class="chart-bar" style="height: ${height}%">
-                <div class="chart-value">${visits}</div>
-                <div class="chart-label">${day.label}</div>
+    const sortedLetters = [...lettersData].sort((a, b) => b.timestamp - a.timestamp);
+
+    adminLettersList.innerHTML = sortedLetters.map(letter => `
+        <div class="letter-admin-item">
+            <div class="letter-admin-header">
+                <div class="letter-admin-title">${letter.title}</div>
+                <div class="letter-admin-actions">
+                    <span class="letter-admin-date">${formatDate(letter.date)}</span>
+                    <button class="delete-letter-btn" onclick="deleteLetter(${letter.id})">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
             </div>
-        `;
-    }).join('');
-}
-
-function renderVisitsTable() {
-    const visitsTable = document.getElementById('visitsTable');
-    
-    if (visitsData.length === 0) {
-        visitsTable.innerHTML = '<div class="no-visits">No hay visitas registradas aún</div>';
-        return;
-    }
-
-    // Ordenar por fecha (más reciente primero)
-    const sortedVisits = [...visitsData].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    visitsTable.innerHTML = sortedVisits.map(visit => `
-        <div class="visit-item">
-            <div class="visit-date">${formatDate(visit.date)}</div>
-            <div class="visit-time">Última: ${visit.lastVisit}</div>
-            <div class="visit-count">${visit.visits} ${visit.visits === 1 ? 'visita' : 'visitas'}</div>
+            <div class="letter-admin-content">${letter.content.substring(0, 100)}${letter.content.length > 100 ? '...' : ''}</div>
         </div>
     `).join('');
 }
 
-function getLast7Days() {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateString = date.toISOString().split('T')[0];
-        const label = date.toLocaleDateString('es-ES', { 
-            weekday: 'short', 
-            day: 'numeric',
-            month: 'short'
-        });
-        days.push({ date: dateString, label: label });
+function updateAdminInterface() {
+    if (isAdmin) {
+        adminPanel.style.display = 'block';
+        adminLoginBtn.style.display = 'none';
+        renderAdminLettersList();
+    } else {
+        adminPanel.style.display = 'none';
+        adminLoginBtn.style.display = 'block';
     }
-    return days;
 }
 
-// SISTEMA DE AUTENTICACIÓN
+function clearEditorForm() {
+    if (letterTitle) letterTitle.value = '';
+    if (letterContent) letterContent.value = '';
+}
+
+function setupEventListeners() {
+    if (letterDateInput) {
+        letterDateInput.value = getCurrentLocalDate();
+    }
+    
+    document.querySelectorAll('.nav-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const section = this.getAttribute('data-section');
+            switchSection(section);
+        });
+    });
+
+    if (prevDateBtn) prevDateBtn.addEventListener('click', () => changeDate('prev'));
+    if (nextDateBtn) nextDateBtn.addEventListener('click', () => changeDate('next'));
+
+    if (searchInput && clearSearch) {
+        searchInput.addEventListener('input', debounce(function(e) {
+            currentSearch = e.target.value.toLowerCase().trim();
+            clearSearch.style.display = currentSearch ? 'block' : 'none';
+            renderArtists();
+            updateStats();
+        }, 300));
+
+        clearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            currentSearch = '';
+            clearSearch.style.display = 'none';
+            renderArtists();
+            updateStats();
+            searchInput.focus();
+        });
+    }
+
+    if (adminLoginBtn) adminLoginBtn.addEventListener('click', showLoginModal);
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+    if (loginBtn) loginBtn.addEventListener('click', attemptLogin);
+    if (closeModal) closeModal.addEventListener('click', hideLoginModal);
+
+    if (saveLetter) saveLetter.addEventListener('click', saveNewLetter);
+    if (clearEditor) clearEditor.addEventListener('click', clearEditorForm);
+
+    window.addEventListener('click', function(e) {
+        if (e.target === loginModal) {
+            hideLoginModal();
+        }
+    });
+}
+
+function renderArtists() {
+    const filteredArtists = filterArtists();
+    
+    if (filteredArtists.length === 0) {
+        artistsContainer.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+
+    artistsContainer.style.display = 'grid';
+    emptyState.style.display = 'none';
+
+    artistsContainer.innerHTML = filteredArtists.map(artist => `
+        <div class="artist-card" data-artist-id="${artist.id}">
+            <div class="artist-header">
+                <div class="artist-logo">
+                    ${getArtistLogo(artist)}
+                </div>
+                <div class="artist-name">${artist.name}</div>
+                <div class="artist-songs-count">${artist.songs.length} ${artist.songs.length === 1 ? 'canción' : 'canciones'}</div>
+            </div>
+            <div class="songs-list">
+                ${artist.songs.map(song => `
+                    <div class="song-item">
+                        <div class="song-info">
+                            <div class="song-title">${song.title}</div>
+                            <div class="song-duration">${song.duration}</div>
+                        </div>
+                        <button class="play-btn" onclick="playSong('${song.url}')" title="Reproducir en YouTube Music">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function getArtistLogo(artist) {
+    if (artist.logo && artist.logo.startsWith('images/')) {
+        return `<img src="${artist.logo}" alt="${artist.name}" onerror="this.style.display='none'; this.parentNode.innerHTML='${artist.fallbackEmoji}'">`;
+    }
+    return artist.fallbackEmoji;
+}
+
+function filterArtists() {
+    if (!currentSearch) {
+        return artistsData;
+    }
+
+    return artistsData.filter(artist => {
+        if (artist.name.toLowerCase().includes(currentSearch)) {
+            return true;
+        }
+
+        const hasMatchingSong = artist.songs.some(song => 
+            song.title.toLowerCase().includes(currentSearch)
+        );
+
+        return hasMatchingSong;
+    });
+}
+
+function updateStats() {
+    const filteredArtists = filterArtists();
+    const totalSongs = filteredArtists.reduce((total, artist) => total + artist.songs.length, 0);
+    
+    artistCount.textContent = `${filteredArtists.length} ${filteredArtists.length === 1 ? 'artista' : 'artistas'}`;
+    songCount.textContent = `${totalSongs} ${totalSongs === 1 ? 'canción' : 'canciones'}`;
+}
+
+function playSong(url) {
+    window.open(url, '_blank');
+}
+
+function switchSection(section) {
+    currentSection = section;
+    
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-section') === section);
+    });
+    
+    document.querySelectorAll('.section').forEach(sec => {
+        sec.classList.toggle('active', sec.id === `${section}-section`);
+    });
+}
+
+function formatTime(timestamp) {
+    return new Date(timestamp).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    const bgColor = type === 'error' ? '#dc3545' : '#28a745';
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${bgColor};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        z-index: 10000;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 3000);
+}
+
 function checkExistingSession() {
     const session = JSON.parse(localStorage.getItem('adminSession'));
     if (session && (Date.now() - session.timestamp) < ADMIN_CONFIG.sessionTimeout) {
@@ -991,324 +856,6 @@ function clearSessionTimer() {
     }
 }
 
-function updateAdminInterface() {
-    if (isAdmin) {
-        adminPanel.style.display = 'block';
-        adminLoginBtn.style.display = 'none';
-        statsNavBtn.style.display = 'flex';
-        renderAdminLettersList();
-        addSyncButton(); // ← AGREGAR ESTA LÍNEA
-    } else {
-        adminPanel.style.display = 'none';
-        adminLoginBtn.style.display = 'block';
-        statsNavBtn.style.display = 'none';
-        // Remover botón de sync si existe
-        const syncBtn = document.getElementById('forceSyncBtn');
-        if (syncBtn) syncBtn.remove();
-    }
-}
-
-// SISTEMA DE CARTAS (SOLO ADMIN PUEDE MODIFICAR)
-function renderAdminLettersList() {
-    if (lettersData.length === 0) {
-        adminLettersList.innerHTML = '<p style="text-align: center; color: #666;">No hay cartas aún</p>';
-        return;
-    }
-
-    const sortedLetters = [...lettersData].sort((a, b) => b.timestamp - a.timestamp);
-
-    adminLettersList.innerHTML = sortedLetters.map(letter => `
-        <div class="letter-admin-item">
-            <div class="letter-admin-header">
-                <div class="letter-admin-title">${letter.title}</div>
-                <div class="letter-admin-actions">
-                    <span class="letter-admin-date">${formatDate(letter.date)}</span>
-                    <button class="delete-letter-btn" onclick="deleteLetter(${letter.id})">
-                        <i class="fas fa-trash"></i> Eliminar
-                    </button>
-                </div>
-            </div>
-            <div class="letter-admin-content">${letter.content.substring(0, 100)}${letter.content.length > 100 ? '...' : ''}</div>
-        </div>
-    `).join('');
-}
-
-function saveNewLetter() {
-    if (!isAdmin) {
-        showNotification('❌ No tienes permisos', 'error');
-        return false;
-    }
-
-    const title = document.getElementById('letterTitle')?.value.trim();
-    const content = document.getElementById('letterContent')?.value.trim();
-    const date = document.getElementById('letterDate')?.value || getCurrentLocalDate();
-
-    if (!title || !content) {
-        showNotification('❌ Escribe título y contenido', 'error');
-        return false;
-    }
-
-    const newLetter = {
-        id: Date.now(),
-        title: title,
-        content: content,
-        date: date,
-        timestamp: new Date().getTime()
-    };
-
-    lettersData.push(newLetter);
-    localStorage.setItem('loveLetters', JSON.stringify(lettersData));
-    
-    // ✅ MARCAR CONTENIDO ACTUALIZADO DE FORMA MÁS EFECTIVA
-    markContentUpdated();
-    
-    // Forzar sincronización inmediata
-    lastSyncTime = 0;
-    localStorage.setItem('lastSyncTime', '0');
-    
-    // Actualizar interfaces
-    if (date === currentSelectedDate) {
-        renderLettersForDate(currentSelectedDate);
-    }
-    if (isAdmin) {
-        renderAdminLettersList();
-    }
-    
-    clearEditorForm();
-    showNotification('💖 Carta guardada - Sincronizando con otros dispositivos...');
-    
-    return true;
-}
-
-function deleteLetter(letterId) {
-    if (!isAdmin) {
-        showNotification('❌ No tienes permisos', 'error');
-        return;
-    }
-
-    if (confirm('¿Estás seguro de que quieres eliminar esta carta?')) {
-        lettersData = lettersData.filter(letter => letter.id !== letterId);
-        localStorage.setItem('loveLetters', JSON.stringify(lettersData));
-        
-        // ✅ MARCAR CONTENIDO ACTUALIZADO
-        markContentUpdated();
-        
-        // Actualizar interfaces
-        renderLettersForDate(currentSelectedDate);
-        renderAdminLettersList();
-        
-        showNotification('🗑️ Carta eliminada y sincronizada');
-    }
-}
-
-function clearEditorForm() {
-    letterTitle.value = '';
-    letterContent.value = '';
-    updateCharCounters();
-}
-
-function updateCharCounters() {
-    const titleCount = letterTitle.value.length;
-    const contentCount = letterContent.value.length;
-    
-    if (titleCount > 45) {
-        letterTitle.style.borderColor = '#ff6b6b';
-    } else {
-        letterTitle.style.borderColor = '#e1e5e9';
-    }
-    
-    if (contentCount > 950) {
-        letterContent.style.borderColor = '#ff6b6b';
-    } else {
-        letterContent.style.borderColor = '#e1e5e9';
-    }
-}
-
-function setupEventListeners() {
-    // Fecha por defecto en editor
-    if (letterDateInput) {
-        letterDateInput.value = getCurrentLocalDate();
-    }
-    
-    // Navegación
-    document.querySelectorAll('.nav-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const section = this.getAttribute('data-section');
-            switchSection(section);
-        });
-    });
-
-    // Navegación de fechas
-    if (prevDateBtn) prevDateBtn.addEventListener('click', () => changeDate('prev'));
-    if (nextDateBtn) nextDateBtn.addEventListener('click', () => changeDate('next'));
-
-    // Búsqueda
-    if (searchInput && clearSearch) {
-        searchInput.addEventListener('input', debounce(function(e) {
-            currentSearch = e.target.value.toLowerCase().trim();
-            clearSearch.style.display = currentSearch ? 'block' : 'none';
-            renderArtists();
-            updateStats();
-        }, 300));
-
-        clearSearch.addEventListener('click', function() {
-            searchInput.value = '';
-            currentSearch = '';
-            clearSearch.style.display = 'none';
-            renderArtists();
-            updateStats();
-            searchInput.focus();
-        });
-    }
-
-    // Sistema admin
-    if (adminLoginBtn) adminLoginBtn.addEventListener('click', showLoginModal);
-    if (logoutBtn) logoutBtn.addEventListener('click', logout);
-    if (loginBtn) loginBtn.addEventListener('click', attemptLogin);
-    if (closeModal) closeModal.addEventListener('click', hideLoginModal);
-
-    // Editor de cartas
-    if (saveLetter) saveLetter.addEventListener('click', saveNewLetter);
-    if (clearEditor) clearEditor.addEventListener('click', clearEditorForm);
-
-    // Cerrar modal al hacer click fuera
-    window.addEventListener('click', function(e) {
-        if (e.target === loginModal) {
-            hideLoginModal();
-        }
-    });
-}
-
-function renderArtists() {
-    const filteredArtists = filterArtists();
-    
-    if (filteredArtists.length === 0) {
-        artistsContainer.style.display = 'none';
-        emptyState.style.display = 'block';
-        return;
-    }
-
-    artistsContainer.style.display = 'grid';
-    emptyState.style.display = 'none';
-
-    artistsContainer.innerHTML = filteredArtists.map(artist => `
-        <div class="artist-card" data-artist-id="${artist.id}">
-            <div class="artist-header">
-                <div class="artist-logo">
-                    ${getArtistLogo(artist)}
-                </div>
-                <div class="artist-name">${artist.name}</div>
-                <div class="artist-songs-count">${artist.songs.length} ${artist.songs.length === 1 ? 'canción' : 'canciones'}</div>
-            </div>
-            <div class="songs-list">
-                ${artist.songs.map(song => `
-                    <div class="song-item">
-                        <div class="song-info">
-                            <div class="song-title">${song.title}</div>
-                            <div class="song-duration">${song.duration}</div>
-                        </div>
-                        <button class="play-btn" onclick="playSong('${song.url}')" title="Reproducir en YouTube Music">
-                            <i class="fas fa-play"></i>
-                        </button>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `).join('');
-}
-
-function getArtistLogo(artist) {
-    // Si tienes una imagen, usa el tag img, sino usa el emoji
-    if (artist.logo && artist.logo.startsWith('images/')) {
-        return `<img src="${artist.logo}" alt="${artist.name}" onerror="this.style.display='none'; this.parentNode.innerHTML='${artist.fallbackEmoji}'">`;
-    }
-    return artist.fallbackEmoji;
-}
-
-function filterArtists() {
-    if (!currentSearch) {
-        return artistsData;
-    }
-
-    return artistsData.filter(artist => {
-        // Buscar en nombre del artista
-        if (artist.name.toLowerCase().includes(currentSearch)) {
-            return true;
-        }
-
-        // Buscar en títulos de canciones
-        const hasMatchingSong = artist.songs.some(song => 
-            song.title.toLowerCase().includes(currentSearch)
-        );
-
-        return hasMatchingSong;
-    });
-}
-
-function updateStats() {
-    const filteredArtists = filterArtists();
-    const totalSongs = filteredArtists.reduce((total, artist) => total + artist.songs.length, 0);
-    
-    artistCount.textContent = `${filteredArtists.length} ${filteredArtists.length === 1 ? 'artista' : 'artistas'}`;
-    songCount.textContent = `${totalSongs} ${totalSongs === 1 ? 'canción' : 'canciones'}`;
-}
-
-function playSong(url) {
-    // Abrir en nueva pestaña
-    window.open(url, '_blank');
-}
-
-function switchSection(section) {
-    currentSection = section;
-    
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-section') === section);
-    });
-    
-    document.querySelectorAll('.section').forEach(sec => {
-        sec.classList.toggle('active', sec.id === `${section}-section`);
-    });
-}
-
-function formatDate(dateString) {
-    const options = { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        weekday: 'long'
-    };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
-}
-
-function formatTime(timestamp) {
-    return new Date(timestamp).toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    const bgColor = type === 'error' ? '#dc3545' : '#28a745';
-    
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${bgColor};
-        color: white;
-        padding: 15px 20px;
-        border-radius: 15px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        z-index: 10000;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => notification.remove(), 3000);
-}
-
-// Utilidad para debounce
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -1321,7 +868,7 @@ function debounce(func, wait) {
     };
 }
 
-// AGREGAR ESTILOS PARA ANIMACIONES
+// Estilos para animaciones
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideIn {
