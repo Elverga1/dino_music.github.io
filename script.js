@@ -310,58 +310,108 @@ const artistsData = [
     }
 ];
 
+// VARIABLES GLOBALES CORREGIDAS
 let syncCode = localStorage.getItem('loveLettersSyncCode') || null;
 let isSyncActive = localStorage.getItem('isSyncActive') === 'true';
+let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [];
+let currentSearch = '';
+let currentSection = 'music';
+let isAdmin = false;
+let sessionTimer = null;
 
-// 2. FUNCIONES DE ALMACENAMIENTO
+// ELEMENTOS DOM (asegúrate de que existan en tu HTML)
+const artistsContainer = document.getElementById('artistsContainer');
+const lettersContainer = document.getElementById('lettersContainer');
+const searchInput = document.getElementById('searchInput');
+const clearSearch = document.getElementById('clearSearch');
+const artistCount = document.getElementById('artistCount');
+const songCount = document.getElementById('songCount');
+const emptyState = document.getElementById('emptyState');
+const loading = document.getElementById('loading');
+const currentDateDisplay = document.getElementById('currentDateDisplay');
+const selectedDateSpan = document.getElementById('selectedDate');
+const prevDateBtn = document.getElementById('prevDate');
+const nextDateBtn = document.getElementById('nextDate');
+const adminPanel = document.getElementById('adminPanel');
+const adminLoginBtn = document.getElementById('adminLoginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const loginModal = document.getElementById('loginModal');
+const adminPassword = document.getElementById('adminPassword');
+const loginBtn = document.getElementById('loginBtn');
+const closeModal = document.querySelector('.close-modal');
+const letterDateInput = document.getElementById('letterDate');
+const letterTitle = document.getElementById('letterTitle');
+const letterContent = document.getElementById('letterContent');
+const saveLetter = document.getElementById('saveLetter');
+const clearEditor = document.getElementById('clearEditor');
+const adminLettersList = document.getElementById('adminLettersList');
+
+// 1. FUNCIONES DE ALMACENAMIENTO MEJORADAS
 function getSharedStorage() {
     try {
         return JSON.parse(localStorage.getItem('sharedLoveLetters') || '{}');
     } catch (e) {
+        console.error('Error al obtener almacenamiento compartido:', e);
         return {};
     }
 }
 
 function setSharedStorage(data) {
-    localStorage.setItem('sharedLoveLetters', JSON.stringify(data));
+    try {
+        localStorage.setItem('sharedLoveLetters', JSON.stringify(data));
+        return true;
+    } catch (e) {
+        console.error('Error al guardar almacenamiento compartido:', e);
+        return false;
+    }
 }
 
-// 3. FUNCIÓN PRINCIPAL DE GENERAR CÓDIGO
+// 2. SISTEMA DE SINCRONIZACIÓN MEJORADO
 function generarCodigoSincronizacionReal() {
     if (!isAdmin) {
         showNotification('❌ Solo el admin puede generar código', 'error');
         return;
     }
 
-    const codigoUnico = 'LL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
-    
-    console.log('🔑 Generando código:', codigoUnico);
-    
-    syncCode = codigoUnico;
-    localStorage.setItem('loveLettersSyncCode', syncCode);
-    localStorage.setItem('isSyncActive', 'true');
-    isSyncActive = true;
-    
-    const sharedData = getSharedStorage();
-    sharedData[codigoUnico] = {
-        cartas: JSON.parse(localStorage.getItem('loveLetters') || '[]'),
-        ultimaActualizacion: Date.now(),
-        creado: new Date().toLocaleString()
-    };
-    setSharedStorage(sharedData);
-    
-    console.log('💾 Código guardado en almacenamiento compartido:', Object.keys(sharedData));
-    
-    mostrarModalCodigoSimple(codigoUnico);
-    showNotification('🔗 Código creado - ¡Compártelo!', 'success');
+    try {
+        const codigoUnico = 'LL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5).toUpperCase();
+        
+        console.log('🔑 Generando código:', codigoUnico);
+        
+        syncCode = codigoUnico;
+        localStorage.setItem('loveLettersSyncCode', syncCode);
+        localStorage.setItem('isSyncActive', 'true');
+        isSyncActive = true;
+        
+        const sharedData = getSharedStorage();
+        sharedData[codigoUnico] = {
+            cartas: JSON.parse(localStorage.getItem('loveLetters') || '[]'),
+            ultimaActualizacion: Date.now(),
+            creado: new Date().toLocaleString(),
+            admin: true
+        };
+        
+        if (setSharedStorage(sharedData)) {
+            console.log('💾 Código guardado en almacenamiento compartido:', Object.keys(sharedData));
+            mostrarModalCodigoSimple(codigoUnico);
+            showNotification('🔗 Código creado - ¡Compártelo!', 'success');
+            
+            // Actualizar interfaz
+            setTimeout(agregarBotonesSincronizacionReales, 100);
+        } else {
+            throw new Error('Error al guardar en almacenamiento compartido');
+        }
+    } catch (error) {
+        console.error('❌ Error generando código:', error);
+        showNotification('❌ Error al generar código', 'error');
+    }
 }
 
-// 4. FUNCIÓN PRINCIPAL DE ACTIVAR SINCRONIZACIÓN
 function activarSincronizacionReal() {
     const codigoInput = prompt('Pega el código de sincronización:');
     if (!codigoInput) return;
     
-    const codigo = codigoInput.trim();
+    const codigo = codigoInput.trim().toUpperCase();
     console.log('🔍 Buscando código:', codigo);
     
     if (!codigo.includes('LL-')) {
@@ -369,82 +419,97 @@ function activarSincronizacionReal() {
         return;
     }
     
-    const sharedData = getSharedStorage();
-    console.log('📂 Almacenamiento compartido:', sharedData);
-    
-    if (!sharedData[codigo]) {
-        showNotification('❌ Código no encontrado. Verifica que esté bien copiado', 'error');
-        return;
+    try {
+        const sharedData = getSharedStorage();
+        console.log('📂 Almacenamiento compartido:', sharedData);
+        
+        if (!sharedData[codigo]) {
+            showNotification('❌ Código no encontrado. Verifica que esté bien copiado', 'error');
+            return;
+        }
+        
+        syncCode = codigo;
+        localStorage.setItem('loveLettersSyncCode', syncCode);
+        localStorage.setItem('isSyncActive', 'true');
+        isSyncActive = true;
+        
+        const datosCodigo = sharedData[codigo];
+        const cartasDelAdmin = datosCodigo.cartas || [];
+        console.log('📥 Cartas encontradas:', cartasDelAdmin.length);
+        
+        sincronizarCartasReales(cartasDelAdmin);
+        
+        showNotification('✅ Sincronización activada!', 'success');
+        
+        // Actualizar interfaz
+        setTimeout(agregarBotonesSincronizacionReales, 100);
+        
+    } catch (error) {
+        console.error('❌ Error activando sincronización:', error);
+        showNotification('❌ Error al activar sincronización', 'error');
     }
-    
-    syncCode = codigo;
-    localStorage.setItem('loveLettersSyncCode', syncCode);
-    localStorage.setItem('isSyncActive', 'true');
-    isSyncActive = true;
-    
-    const cartasDelAdmin = sharedData[codigo].cartas || [];
-    console.log('📥 Cartas encontradas:', cartasDelAdmin.length);
-    
-    sincronizarCartasReales(cartasDelAdmin);
-    
-    showNotification('✅ Sincronización activada!', 'success');
-    
-    const botones = document.getElementById('botonesSincronizacionReales');
-    if (botones) botones.remove();
-    setTimeout(agregarBotonesSincronizacionReales, 100);
 }
 
-// 5. FUNCIÓN DE SINCRONIZACIÓN DE CARTAS
 function sincronizarCartasReales(cartasNuevas) {
-    if (!cartasNuevas || cartasNuevas.length === 0) {
+    if (!cartasNuevas || !Array.isArray(cartasNuevas)) {
         console.log('📭 No hay cartas nuevas para sincronizar');
         return;
     }
     
-    const cartasLocales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
-    const idsLocales = new Set(cartasLocales.map(c => c.id));
-    const cartasParaAgregar = cartasNuevas.filter(carta => !idsLocales.has(carta.id));
-    
-    if (cartasParaAgregar.length > 0) {
-        const cartasActualizadas = [...cartasLocales, ...cartasParaAgregar];
-        cartasActualizadas.sort((a, b) => b.timestamp - a.timestamp);
+    try {
+        const cartasLocales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
+        const idsLocales = new Set(cartasLocales.map(c => c.id));
+        const cartasParaAgregar = cartasNuevas.filter(carta => 
+            carta && carta.id && !idsLocales.has(carta.id)
+        );
         
-        localStorage.setItem('loveLetters', JSON.stringify(cartasActualizadas));
-        lettersData = cartasActualizadas;
-        
-        renderLettersForDate(currentSelectedDate);
-        if (isAdmin) {
-            renderAdminLettersList();
+        if (cartasParaAgregar.length > 0) {
+            const cartasActualizadas = [...cartasLocales, ...cartasParaAgregar];
+            cartasActualizadas.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            
+            localStorage.setItem('loveLetters', JSON.stringify(cartasActualizadas));
+            lettersData = cartasActualizadas;
+            
+            renderLettersForDate(currentSelectedDate);
+            if (isAdmin) {
+                renderAdminLettersList();
+            }
+            
+            console.log(`✅ ${cartasParaAgregar.length} nuevas cartas sincronizadas`);
+            showNotification(`📬 ${cartasParaAgregar.length} nueva(s) carta(s) recibida(s)! 💖`, 'success');
+        } else {
+            console.log('📭 No hay cartas nuevas para agregar');
         }
-        
-        console.log(`✅ ${cartasParaAgregar.length} nuevas cartas sincronizadas`);
-        showNotification(`📬 ${cartasParaAgregar.length} nueva(s) carta(s) recibida(s)! 💖`, 'success');
-    } else {
-        console.log('📭 No hay cartas nuevas para agregar');
+    } catch (error) {
+        console.error('❌ Error sincronizando cartas:', error);
     }
 }
 
-// 6. FUNCIÓN DE ACTUALIZAR ALMACENAMIENTO COMPARTIDO
 function actualizarCartasCompartidas() {
     if (!isAdmin || !syncCode) {
         console.log('📝 No se puede actualizar:', isAdmin ? 'Sin código' : 'No es admin');
         return;
     }
     
-    const sharedData = getSharedStorage();
-    if (sharedData[syncCode]) {
-        const cartasActuales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
-        sharedData[syncCode].cartas = cartasActuales;
-        sharedData[syncCode].ultimaActualizacion = Date.now();
-        setSharedStorage(sharedData);
-        
-        console.log('📡 Cartas actualizadas:', cartasActuales.length);
-    } else {
-        console.log('❌ Código no encontrado para actualizar');
+    try {
+        const sharedData = getSharedStorage();
+        if (sharedData[syncCode]) {
+            const cartasActuales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
+            sharedData[syncCode].cartas = cartasActuales;
+            sharedData[syncCode].ultimaActualizacion = Date.now();
+            sharedData[syncCode].actualizado = new Date().toLocaleString();
+            
+            if (setSharedStorage(sharedData)) {
+                console.log('📡 Cartas actualizadas:', cartasActuales.length);
+            }
+        } else {
+            console.log('❌ Código no encontrado para actualizar');
+        }
+    } catch (error) {
+        console.error('❌ Error actualizando cartas compartidas:', error);
     }
 }
 
-// 7. FUNCIÓN DE VERIFICAR ACTUALIZACIONES
 function verificarActualizacionesReales() {
     if (!isSyncActive || !syncCode) {
         console.log('📭 Sincronización inactiva');
@@ -453,34 +518,39 @@ function verificarActualizacionesReales() {
     
     console.log('🔄 Verificando actualizaciones para código:', syncCode);
     
-    const sharedData = getSharedStorage();
-    const datosCodigo = sharedData[syncCode];
-    
-    if (!datosCodigo) {
-        console.log('❌ Código no encontrado en verificación');
-        return;
-    }
-    
-    const cartasLocales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
-    const cartasCompartidas = datosCodigo.cartas || [];
-    
-    console.log('📊 Comparando:', {
-        locales: cartasLocales.length,
-        compartidas: cartasCompartidas.length
-    });
-    
-    const idsLocales = new Set(cartasLocales.map(c => c.id));
-    const cartasNuevas = cartasCompartidas.filter(carta => !idsLocales.has(carta.id));
-    
-    if (cartasNuevas.length > 0) {
-        console.log('📥 Sincronizando', cartasNuevas.length, 'cartas nuevas');
-        sincronizarCartasReales(cartasNuevas);
-    } else {
-        console.log('📭 No hay cartas nuevas');
+    try {
+        const sharedData = getSharedStorage();
+        const datosCodigo = sharedData[syncCode];
+        
+        if (!datosCodigo) {
+            console.log('❌ Código no encontrado en verificación');
+            return;
+        }
+        
+        const cartasLocales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
+        const cartasCompartidas = datosCodigo.cartas || [];
+        
+        console.log('📊 Comparando:', {
+            locales: cartasLocales.length,
+            compartidas: cartasCompartidas.length
+        });
+        
+        const idsLocales = new Set(cartasLocales.map(c => c.id));
+        const cartasNuevas = cartasCompartidas.filter(carta => 
+            carta && carta.id && !idsLocales.has(carta.id)
+        );
+        
+        if (cartasNuevas.length > 0) {
+            console.log('📥 Sincronizando', cartasNuevas.length, 'cartas nuevas');
+            sincronizarCartasReales(cartasNuevas);
+        } else {
+            console.log('📭 No hay cartas nuevas');
+        }
+    } catch (error) {
+        console.error('❌ Error verificando actualizaciones:', error);
     }
 }
 
-// 8. FUNCIÓN DE DETENER SINCRONIZACIÓN
 function detenerSincronizacionReal() {
     syncCode = null;
     isSyncActive = false;
@@ -489,12 +559,11 @@ function detenerSincronizacionReal() {
     
     showNotification('🔴 Sincronización detenida', 'success');
     
-    const botones = document.getElementById('botonesSincronizacionReales');
-    if (botones) botones.remove();
+    // Actualizar interfaz
     setTimeout(agregarBotonesSincronizacionReales, 100);
 }
 
-// 9. FUNCIONES DE MODAL Y UTILIDADES
+// 3. FUNCIONES DE INTERFAZ
 function mostrarModalCodigoSimple(codigo) {
     const modal = document.createElement('div');
     modal.style.cssText = `
@@ -532,10 +601,6 @@ function mostrarModalCodigoSimple(codigo) {
                     style="padding: 12px 25px; background: #00b894; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold;">
                     📋 Copiar
                 </button>
-                <button onclick="testCodigo('${codigo}')" 
-                    style="padding: 12px 25px; background: #0984e3; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold;">
-                    🧪 Probar
-                </button>
                 <button onclick="this.parentElement.parentElement.parentElement.remove()" 
                     style="padding: 12px 25px; background: #636e72; color: white; border: none; border-radius: 10px; cursor: pointer;">
                     ✅ Cerrar
@@ -551,6 +616,7 @@ function copiarCodigoSimple(codigo) {
     navigator.clipboard.writeText(codigo).then(() => {
         showNotification('📋 Código copiado', 'success');
     }).catch(() => {
+        // Fallback para navegadores antiguos
         const textarea = document.createElement('textarea');
         textarea.value = codigo;
         document.body.appendChild(textarea);
@@ -561,109 +627,148 @@ function copiarCodigoSimple(codigo) {
     });
 }
 
-function testCodigo(codigo) {
-    console.log('🧪 Probando código:', codigo);
-    
-    const sharedData = getSharedStorage();
-    if (sharedData[codigo]) {
-        showNotification('✅ Código funciona correctamente', 'success');
-        console.log('📦 Datos del código:', sharedData[codigo]);
-    } else {
-        showNotification('❌ Código NO encontrado', 'error');
-        console.log('📂 Almacenamiento actual:', sharedData);
+// 4. FUNCIONES PRINCIPALES DE LA APLICACIÓN
+function saveNewLetter() {
+    if (!isAdmin) {
+        showNotification('❌ No tienes permisos', 'error');
+        return false;
+    }
+
+    const title = letterTitle?.value.trim();
+    const content = letterContent?.value.trim();
+    const date = letterDateInput?.value || getCurrentLocalDate();
+
+    if (!title || !content) {
+        showNotification('❌ Escribe título y contenido', 'error');
+        return false;
+    }
+
+    try {
+        const newLetter = {
+            id: Date.now(),
+            title: title,
+            content: content,
+            date: date,
+            timestamp: new Date().getTime()
+        };
+
+        lettersData.push(newLetter);
+        localStorage.setItem('loveLetters', JSON.stringify(lettersData));
+        
+        // Actualizar almacenamiento compartido si hay sincronización activa
+        if (isAdmin && isSyncActive && syncCode) {
+            setTimeout(actualizarCartasCompartidas, 100);
+        }
+        
+        if (date === currentSelectedDate) {
+            renderLettersForDate(currentSelectedDate);
+        }
+        if (isAdmin) {
+            renderAdminLettersList();
+        }
+        
+        clearEditorForm();
+        showNotification('💖 Carta guardada');
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error guardando carta:', error);
+        showNotification('❌ Error al guardar carta', 'error');
+        return false;
     }
 }
 
-// 10. FUNCIONES DE EXPORTACIÓN/IMPORTACIÓN
-function exportarCartas() {
-    const cartas = JSON.parse(localStorage.getItem('loveLetters') || '[]');
-    const datos = {
-        cartas: cartas,
-        timestamp: Date.now(),
-        total: cartas.length
-    };
-    
-    const datosString = JSON.stringify(datos);
-    const blob = new Blob([datosString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cartas-amor-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    
-    URL.revokeObjectURL(url);
-    showNotification('📤 Cartas exportadas', 'success');
-}
+function deleteLetter(letterId) {
+    if (!isAdmin) {
+        showNotification('❌ No tienes permisos', 'error');
+        return;
+    }
 
-function importarCartas(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
+    if (confirm('¿Estás seguro de que quieres eliminar esta carta?')) {
         try {
-            const datos = JSON.parse(e.target.result);
-            const cartasImportadas = datos.cartas || [];
+            const letterToDelete = lettersData.find(letter => letter.id === letterId);
+            lettersData = lettersData.filter(letter => letter.id !== letterId);
+            localStorage.setItem('loveLetters', JSON.stringify(lettersData));
             
-            const cartasActuales = JSON.parse(localStorage.getItem('loveLetters') || '[]');
-            const todasLasCartas = [...cartasActuales, ...cartasImportadas];
-            
-            const cartasUnicas = todasLasCartas.filter((carta, index, array) => 
-                index === array.findIndex(c => c.id === carta.id)
-            );
-            
-            localStorage.setItem('loveLetters', JSON.stringify(cartasUnicas));
-            lettersData = cartasUnicas;
-            
-            renderLettersForDate(currentSelectedDate);
-            if (isAdmin) {
-                renderAdminLettersList();
+            // Actualizar almacenamiento compartido si hay sincronización activa
+            if (isAdmin && isSyncActive && syncCode) {
+                setTimeout(actualizarCartasCompartidas, 100);
             }
             
-            showNotification(`📥 ${cartasImportadas.length} cartas importadas`, 'success');
+            if (letterToDelete && letterToDelete.date === currentSelectedDate) {
+                renderLettersForDate(currentSelectedDate);
+            }
+            renderAdminLettersList();
             
+            showNotification('🗑️ Carta eliminada');
         } catch (error) {
-            showNotification('❌ Error importando cartas', 'error');
+            console.error('❌ Error eliminando carta:', error);
+            showNotification('❌ Error al eliminar carta', 'error');
         }
-    };
-    reader.readAsText(file);
-    
-    event.target.value = '';
-}
-
-// 11. FUNCIONES DE DEBUG
-function debugSincronizacion() {
-    const sharedData = getSharedStorage();
-    console.log('🐛 DEBUG Sincronización:', {
-        syncCode: syncCode,
-        isSyncActive: isSyncActive,
-        isAdmin: isAdmin,
-        codigosEnStorage: Object.keys(sharedData),
-        cartasLocales: JSON.parse(localStorage.getItem('loveLetters') || '[]').length
-    });
-    
-    if (syncCode && sharedData[syncCode]) {
-        console.log('📦 Datos del código actual:', sharedData[syncCode]);
     }
 }
 
-function limpiarSincronizacion() {
-    localStorage.removeItem('loveLettersSyncCode');
-    localStorage.removeItem('isSyncActive');
-    syncCode = null;
-    isSyncActive = false;
+function renderLettersForDate(date) {
+    if (!lettersContainer) return;
     
-    showNotification('🧹 Sincronización limpiada', 'success');
+    const lettersForDate = lettersData.filter(letter => letter.date === date);
     
-    const botones = document.getElementById('botonesSincronizacionReales');
-    if (botones) botones.remove();
-    setTimeout(agregarBotonesSincronizacionReales, 100);
+    if (lettersForDate.length === 0) {
+        lettersContainer.innerHTML = `
+            <div class="empty-state" style="display: block; color: #666;">
+                <i class="fas fa-feather"></i>
+                <h3>No hay cartas para este día</h3>
+                <p>${date === getCurrentLocalDate() ? '¡Vuelve más tarde! 💖' : 'No se escribieron cartas este día'}</p>
+            </div>
+        `;
+        return;
+    }
+
+    const sortedLetters = [...lettersForDate].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    lettersContainer.innerHTML = sortedLetters.map(letter => `
+        <div class="letter-card">
+            <div class="letter-header">
+                <h3 class="letter-title">${escapeHtml(letter.title)}</h3>
+                <span class="letter-date">${formatTime(letter.timestamp)}</span>
+            </div>
+            <div class="letter-content">${escapeHtml(letter.content)}</div>
+        </div>
+    `).join('');
 }
 
-// 12. FUNCIÓN DE BOTONES
+function renderAdminLettersList() {
+    if (!adminLettersList) return;
+    
+    if (lettersData.length === 0) {
+        adminLettersList.innerHTML = '<p style="text-align: center; color: #666;">No hay cartas aún</p>';
+        return;
+    }
+
+    const sortedLetters = [...lettersData].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    adminLettersList.innerHTML = sortedLetters.map(letter => `
+        <div class="letter-admin-item">
+            <div class="letter-admin-header">
+                <div class="letter-admin-title">${escapeHtml(letter.title)}</div>
+                <div class="letter-admin-actions">
+                    <span class="letter-admin-date">${formatDate(letter.date)}</span>
+                    <button class="delete-letter-btn" onclick="deleteLetter(${letter.id})">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+            <div class="letter-admin-content">${escapeHtml(letter.content.substring(0, 100))}${letter.content.length > 100 ? '...' : ''}</div>
+        </div>
+    `).join('');
+}
+
+// 5. FUNCIÓN DE BOTONES MEJORADA
 function agregarBotonesSincronizacionReales() {
-    if (document.getElementById('botonesSincronizacionReales')) return;
+    // Eliminar botones existentes
+    const existingButtons = document.getElementById('botonesSincronizacionReales');
+    if (existingButtons) {
+        existingButtons.remove();
+    }
     
     const estado = isSyncActive ? 
         '🟢 ACTIVA - ' + (syncCode ? syncCode.substring(0, 10) + '...' : '') : 
@@ -683,14 +788,7 @@ function agregarBotonesSincronizacionReales() {
                     style="padding: 12px 8px; background: #fdcb6e; color: #2d3436; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
                     🎯 CREAR CÓDIGO
                 </button>
-                <button onclick="exportarCartas()" 
-                    style="padding: 12px 8px; background: #00b894; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                    📤 EXPORTAR
-                </button>
                 ` : `
-                <div style="padding: 12px 8px; background: rgba(255,255,255,0.2); color: white; border-radius: 10px; font-size: 12px; text-align: center;">
-                    👑 Solo Admin
-                </div>
                 <div style="padding: 12px 8px; background: rgba(255,255,255,0.2); color: white; border-radius: 10px; font-size: 12px; text-align: center;">
                     👑 Solo Admin
                 </div>
@@ -700,38 +798,19 @@ function agregarBotonesSincronizacionReales() {
                     style="padding: 12px 8px; background: #6c5ce7; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
                     📱 ACTIVAR
                 </button>
+                
                 ${isSyncActive ? `
                 <button onclick="detenerSincronizacionReal()" 
                     style="padding: 12px 8px; background: #e17055; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
                     🛑 DETENER
                 </button>
                 ` : `
-                <button onclick="document.getElementById('importarArchivoReal').click()" 
+                <button onclick="verificarActualizacionesReales()" 
                     style="padding: 12px 8px; background: #a29bfe; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
-                    📥 IMPORTAR
+                    🔄 VERIFICAR
                 </button>
                 `}
             </div>
-            
-            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-top: 10px;">
-                <div style="font-size: 11px; opacity: 0.8; text-align: center; margin-bottom: 8px;">🔧 HERRAMIENTAS</div>
-                <div style="display: flex; gap: 8px; justify-content: center;">
-                    <button onclick="debugSincronizacion()" 
-                        style="padding: 6px 10px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 10px;">
-                        🐛 Debug
-                    </button>
-                    <button onclick="verificarActualizacionesReales()" 
-                        style="padding: 6px 10px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 10px;">
-                        🔄 Forzar Sync
-                    </button>
-                    <button onclick="limpiarSincronizacion()" 
-                        style="padding: 6px 10px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 10px;">
-                        🧹 Limpiar
-                    </button>
-                </div>
-            </div>
-            
-            <input type="file" id="importarArchivoReal" accept=".json" style="display: none;" onchange="importarCartas(event)">
         </div>
     `;
     
@@ -746,10 +825,12 @@ function agregarBotonesSincronizacionReales() {
     }
 }
 
-// 13. INICIALIZACIÓN DEL SISTEMA
+// 6. INICIALIZACIÓN MEJORADA
 function inicializarSistemaReal() {
+    // Verificar actualizaciones cada 15 segundos
     setInterval(verificarActualizacionesReales, 15000);
     
+    // Verificar cuando la página se vuelve visible
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
             setTimeout(verificarActualizacionesReales, 1000);
@@ -759,68 +840,59 @@ function inicializarSistemaReal() {
     console.log('🔗 Sistema de sincronización REAL inicializado');
 }
 
-// 14. MODIFICACIÓN DE saveNewLetter
-const originalSaveNewLetter = saveNewLetter;
-saveNewLetter = function() {
-    const result = originalSaveNewLetter();
-    
-    if (result !== false && isAdmin) {
-        setTimeout(() => {
-            actualizarCartasCompartidas();
-        }, 500);
-    }
-    
-    return result;
-};
+// 7. FUNCIONES UTILITARIAS
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
-// 15. HACER FUNCIONES GLOBALES
+function formatTime(timestamp) {
+    return new Date(timestamp).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    const bgColor = type === 'error' ? '#dc3545' : '#28a745';
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${bgColor};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        z-index: 10000;
+        font-family: Arial, sans-serif;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+
+// 8. HACER FUNCIONES GLOBALES
 window.generarCodigoSincronizacionReal = generarCodigoSincronizacionReal;
 window.activarSincronizacionReal = activarSincronizacionReal;
 window.detenerSincronizacionReal = detenerSincronizacionReal;
 window.copiarCodigoSimple = copiarCodigoSimple;
-window.testCodigo = testCodigo;
-window.debugSincronizacion = debugSincronizacion;
-window.limpiarSincronizacion = limpiarSincronizacion;
-window.exportarCartas = exportarCartas;
-window.importarCartas = importarCartas;
+window.saveNewLetter = saveNewLetter;
+window.deleteLetter = deleteLetter;
 
-// Sistema de cartas
-let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [];
-
-// Estado de la aplicación
-let currentSearch = '';
-let currentSection = 'music';
-let isAdmin = false;
-let sessionTimer = null;
-
-// Elementos DOM
-const artistsContainer = document.getElementById('artistsContainer');
-const lettersContainer = document.getElementById('lettersContainer');
-const searchInput = document.getElementById('searchInput');
-const clearSearch = document.getElementById('clearSearch');
-const artistCount = document.getElementById('artistCount');
-const songCount = document.getElementById('songCount');
-const emptyState = document.getElementById('emptyState');
-const loading = document.getElementById('loading');
-const currentDateDisplay = document.getElementById('currentDateDisplay');
-const selectedDateSpan = document.getElementById('selectedDate');
-const prevDateBtn = document.getElementById('prevDate');
-const nextDateBtn = document.getElementById('nextDate');
-const adminPanel = document.getElementById('adminPanel');
-const adminLoginBtn = document.getElementById('adminLoginBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const loginModal = document.getElementById('loginModal');
-const adminPassword = document.getElementById('adminPassword');
-const loginBtn = document.getElementById('loginBtn');
-const closeModal = document.querySelector('.close-modal');
-const letterDateInput = document.getElementById('letterDate');
-const letterTitle = document.getElementById('letterTitle');
-const letterContent = document.getElementById('letterContent');
-const saveLetter = document.getElementById('saveLetter');
-const clearEditor = document.getElementById('clearEditor');
-const adminLettersList = document.getElementById('adminLettersList');
-
-// Inicialización
+// Inicialización cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     console.log('💌 Iniciando aplicación');
     checkExistingSession();
@@ -829,7 +901,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeApp() {
     setTimeout(() => {
-        loading.style.display = 'none';
+        if (loading) loading.style.display = 'none';
         
         currentSelectedDate = getCurrentLocalDate();
         if (letterDateInput) {
@@ -845,6 +917,7 @@ function initializeApp() {
         
         // 🎯 INICIALIZAR SISTEMA REAL
         inicializarSistemaReal();
+        agregarBotonesSincronizacionReales();
         
         console.log('✅ Aplicación iniciada - Sincronización:', isSyncActive ? 'ACTIVA' : 'INACTIVA');
         
