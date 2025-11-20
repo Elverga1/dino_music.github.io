@@ -446,6 +446,7 @@ function copiarCodigo() {
     showNotification('📋 Código copiado', 'success');
 }
 
+// 🎯 FORMA 1: Botones normales (automáticos)
 function agregarBotonesSincronizacion() {
     if (!isAdmin) return;
     
@@ -453,19 +454,20 @@ function agregarBotonesSincronizacion() {
     if (document.getElementById('botonesSincronizacion')) return;
     
     const botonesHTML = `
-        <div id="botonesSincronizacion" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-            <h4 style="margin-bottom: 10px;">🔄 Sincronización entre Dispositivos</h4>
+        <div id="botonesSincronizacion" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px; border: 2px solid #007bff;">
+            <h4 style="margin-bottom: 10px; color: #007bff;">🔄 Sincronización entre Dispositivos</h4>
+            <p style="margin-bottom: 15px; color: #666; font-size: 14px;">Usa estos botones para compartir cartas entre tu laptop y celular</p>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button onclick="exportarCartas()" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                <button onclick="exportarCartas()" style="padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
                     📤 Exportar Cartas
                 </button>
-                <button onclick="document.getElementById('importarArchivo').click()" style="padding: 8px 15px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                <button onclick="document.getElementById('importarArchivo').click()" style="padding: 10px 15px; background: #17a2b8; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
                     📥 Importar Cartas
                 </button>
-                <button onclick="generarCodigoSincronizacion()" style="padding: 8px 15px; background: #ffc107; color: black; border: none; border-radius: 5px; cursor: pointer;">
+                <button onclick="generarCodigoSincronizacion()" style="padding: 10px 15px; background: #ffc107; color: black; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
                     📋 Generar Código
                 </button>
-                <button onclick="pegarCodigoSincronizacion()" style="padding: 8px 15px; background: #6f42c1; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                <button onclick="pegarCodigoSincronizacion()" style="padding: 10px 15px; background: #6f42c1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
                     📝 Pegar Código
                 </button>
             </div>
@@ -473,11 +475,104 @@ function agregarBotonesSincronizacion() {
         </div>
     `;
     
-    // Insertar después del editor de cartas
+    // Intentar insertar después del editor
     const editor = document.querySelector('.letter-editor');
     if (editor) {
         editor.insertAdjacentHTML('afterend', botonesHTML);
+        console.log('✅ Botones de sincronización agregados después del editor');
+    } else {
+        // Si no encuentra el editor, ponerlo en el panel admin
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel) {
+            adminPanel.insertAdjacentHTML('beforeend', botonesHTML);
+            console.log('✅ Botones de sincronización agregados al final del panel admin');
+        } else {
+            console.error('❌ No se pudo encontrar el panel admin');
+        }
     }
+}
+
+// 🎯 FORMA 2: Botones de emergencia (manuales)
+function forzarBotonesSincronizacion() {
+    if (!isAdmin) {
+        showNotification('❌ Debes iniciar sesión como admin primero', 'error');
+        return;
+    }
+    
+    // Eliminar botones existentes si hay
+    const botonesExistentes = document.getElementById('botonesSincronizacion');
+    if (botonesExistentes) {
+        botonesExistentes.remove();
+    }
+    
+    const botonesHTML = `
+        <div id="botonesSincronizacion" style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; border: 3px solid #ff6b6b; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
+            <h4 style="margin-bottom: 10px; color: white; text-align: center; font-size: 18px;">🚀 SINCRONIZACIÓN ENTRE DISPOSITIVOS</h4>
+            <p style="margin-bottom: 20px; color: #f8f9fa; font-size: 14px; text-align: center;">¡Comparte tus cartas de amor entre laptop y celular!</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
+                <button onclick="exportarCartas()" style="padding: 12px 10px; background: #28a745; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                    📤 EXPORTAR<br>CARTAS
+                </button>
+                <button onclick="document.getElementById('importarArchivo').click()" style="padding: 12px 10px; background: #17a2b8; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                    📥 IMPORTAR<br>CARTAS
+                </button>
+                <button onclick="generarCodigoSincronizacion()" style="padding: 12px 10px; background: #ffc107; color: black; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                    📋 GENERAR<br>CÓDIGO
+                </button>
+                <button onclick="pegarCodigoSincronizacion()" style="padding: 12px 10px; background: #6f42c1; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                    📝 PEGAR<br>CÓDIGO
+                </button>
+            </div>
+            
+            <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin-top: 10px;">
+                <p style="color: white; font-size: 12px; margin: 0; text-align: center;">
+                    💡 <strong>Consejo:</strong> Usa "Generar Código" y "Pegar Código" para sincronizar fácilmente
+                </p>
+            </div>
+            
+            <input type="file" id="importarArchivo" accept=".json" style="display: none;" onchange="importarCartas(event)">
+        </div>
+    `;
+    
+    // Intentar múltiples ubicaciones
+    let inserted = false;
+    
+    // 1. Intentar después del editor de cartas
+    const editor = document.querySelector('.letter-editor');
+    if (editor) {
+        editor.insertAdjacentHTML('afterend', botonesHTML);
+        console.log('✅ Botones EMERGENCIA agregados después del editor');
+        inserted = true;
+    }
+    
+    // 2. Si no, intentar al principio del panel admin
+    if (!inserted) {
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel) {
+            adminPanel.insertAdjacentHTML('afterbegin', botonesHTML);
+            console.log('✅ Botones EMERGENCIA agregados al principio del panel admin');
+            inserted = true;
+        }
+    }
+    
+    // 3. Si no, intentar al final del panel admin
+    if (!inserted) {
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel) {
+            adminPanel.insertAdjacentHTML('beforeend', botonesHTML);
+            console.log('✅ Botones EMERGENCIA agregados al final del panel admin');
+            inserted = true;
+        }
+    }
+    
+    // 4. Si nada funciona, ponerlo en el body
+    if (!inserted) {
+        document.body.insertAdjacentHTML('beforeend', botonesHTML);
+        console.log('✅ Botones EMERGENCIA agregados al final del body');
+    }
+    
+    showNotification('🚀 Botones de sincronización forzados', 'success');
 }
 
 // Hacer funciones disponibles globalmente
@@ -486,6 +581,7 @@ window.importarCartas = importarCartas;
 window.generarCodigoSincronizacion = generarCodigoSincronizacion;
 window.pegarCodigoSincronizacion = pegarCodigoSincronizacion;
 window.copiarCodigo = copiarCodigo;
+window.forzarBotonesSincronizacion = forzarBotonesSincronizacion;
 
 // Sistema de cartas
 let lettersData = JSON.parse(localStorage.getItem('loveLetters')) || [];
@@ -719,10 +815,21 @@ function updateAdminInterface() {
         adminPanel.style.display = 'block';
         adminLoginBtn.style.display = 'none';
         renderAdminLettersList();
-        agregarBotonesSincronizacion(); // ← AGREGAR BOTONES DE SINCRONIZACIÓN
+        
+        // 🎯 PRIMERO intentar botones automáticos
+        setTimeout(() => {
+            agregarBotonesSincronizacion();
+        }, 100);
+        
     } else {
         adminPanel.style.display = 'none';
         adminLoginBtn.style.display = 'block';
+        
+        // Remover botones si existen
+        const botones = document.getElementById('botonesSincronizacion');
+        if (botones) {
+            botones.remove();
+        }
     }
 }
 
