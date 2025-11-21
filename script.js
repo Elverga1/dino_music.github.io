@@ -925,14 +925,12 @@ function showNotification(message, type = 'success') {
         }
     }, 3000);
 }
-
 // 8. HACER FUNCIONES GLOBALES
-window.generarCodigoSincronizacionReal = generarCodigoSincronizacionReal;
-window.activarSincronizacionReal = activarSincronizacionReal;
-window.detenerSincronizacionReal = detenerSincronizacionReal;
-window.copiarCodigoSimple = copiarCodigoSimple;
 window.saveNewLetter = saveNewLetter;
 window.deleteLetter = deleteLetter;
+window.copyToClipboard = copyToClipboard;
+window.generateQR = generateQR;
+window.syncSystem = syncSystem;
 
 // Inicialización cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
@@ -958,7 +956,7 @@ function initializeApp() {
         updateAdminInterface();
         agregarBotonesSincronizacionReales();
         
-        console.log('✅ Aplicación iniciada - Sincronización:', isSyncActive ? 'ACTIVA' : 'INACTIVA');
+        console.log('✅ Aplicación iniciada - Sync:', syncSystem.getStatus());
         
     }, 800);
 }
@@ -1011,122 +1009,6 @@ function changeDate(direction) {
     
     updateDateDisplay();
     renderLettersForDate(currentSelectedDate);
-}
-
-function saveNewLetter() {
-    // Actualizar sync si está activo
-    if (syncSystem.getStatus().isActive) {
-        syncSystem.updateRemoteData();
-    }
-
-    const title = letterTitle?.value.trim();
-    const content = letterContent?.value.trim();
-    const date = letterDateInput?.value || getCurrentLocalDate();
-
-    if (!title || !content) {
-        showNotification('❌ Escribe título y contenido', 'error');
-        return false;
-    }
-
-    const newLetter = {
-        id: Date.now(),
-        title: title,
-        content: content,
-        date: date,
-        timestamp: new Date().getTime()
-    };
-
-    lettersData.push(newLetter);
-    localStorage.setItem('loveLetters', JSON.stringify(lettersData));
-    
-    // Marcar que hay nueva carta para sincronización
-    localStorage.setItem('lastContentUpdate', Date.now().toString());
-    
-    if (date === currentSelectedDate) {
-        renderLettersForDate(currentSelectedDate);
-    }
-    if (isAdmin) {
-        renderAdminLettersList();
-    }
-    
-    clearEditorForm();
-    showNotification('💖 Carta guardada');
-    
-    return true;
-}
-
-function deleteLetter(letterId) {
-    // Actualizar sync si está activo
-    if (syncSystem.getStatus().isActive) {
-        syncSystem.updateRemoteData();
-    }
-
-    if (confirm('¿Estás seguro de que quieres eliminar esta carta?')) {
-        const letterToDelete = lettersData.find(letter => letter.id === letterId);
-        lettersData = lettersData.filter(letter => letter.id !== letterId);
-        localStorage.setItem('loveLetters', JSON.stringify(lettersData));
-        
-        if (letterToDelete && letterToDelete.date === currentSelectedDate) {
-            renderLettersForDate(currentSelectedDate);
-        }
-        renderAdminLettersList();
-        
-        showNotification('🗑️ Carta eliminada');
-    }
-}
-
-function renderLettersForDate(date) {
-    if (!lettersContainer) return;
-    
-    const lettersForDate = lettersData.filter(letter => letter.date === date);
-    
-    if (lettersForDate.length === 0) {
-        lettersContainer.innerHTML = `
-            <div class="empty-state" style="display: block; color: #666;">
-                <i class="fas fa-feather"></i>
-                <h3>No hay cartas para este día</h3>
-                <p>${date === getCurrentLocalDate() ? '¡Vuelve más tarde! 💖' : 'No se escribieron cartas este día'}</p>
-            </div>
-        `;
-        return;
-    }
-
-    const sortedLetters = [...lettersForDate].sort((a, b) => b.timestamp - a.timestamp);
-    lettersContainer.innerHTML = sortedLetters.map(letter => `
-        <div class="letter-card">
-            <div class="letter-header">
-                <h3 class="letter-title">${letter.title}</h3>
-                <span class="letter-date">${formatTime(letter.timestamp)}</span>
-            </div>
-            <div class="letter-content">${letter.content}</div>
-        </div>
-    `).join('');
-}
-
-function renderAdminLettersList() {
-    if (!adminLettersList) return;
-    
-    if (lettersData.length === 0) {
-        adminLettersList.innerHTML = '<p style="text-align: center; color: #666;">No hay cartas aún</p>';
-        return;
-    }
-
-    const sortedLetters = [...lettersData].sort((a, b) => b.timestamp - a.timestamp);
-
-    adminLettersList.innerHTML = sortedLetters.map(letter => `
-        <div class="letter-admin-item">
-            <div class="letter-admin-header">
-                <div class="letter-admin-title">${letter.title}</div>
-                <div class="letter-admin-actions">
-                    <span class="letter-admin-date">${formatDate(letter.date)}</span>
-                    <button class="delete-letter-btn" onclick="deleteLetter(${letter.id})">
-                        <i class="fas fa-trash"></i> Eliminar
-                    </button>
-                </div>
-            </div>
-            <div class="letter-admin-content">${letter.content.substring(0, 100)}${letter.content.length > 100 ? '...' : ''}</div>
-        </div>
-    `).join('');
 }
 
 function updateAdminInterface() {
